@@ -10,10 +10,11 @@ import {
 } from "../lib/adminSetup";
 import { getAwards, addAward, deleteAward, AWARD_CATS, awardIcon, type AwardRow } from "../lib/awards";
 import { getSponsors, addSponsor, deleteSponsor, TIERS, type Sponsor } from "../lib/sponsors";
+import { createMatch, deleteMatch, getMatchesForFixture, type LiveMatch } from "../lib/liveMatches";
 import type { Course, Fixture, Modality, Player, Team } from "../lib/types";
-import { Avatar, displayName, Spinner } from "../ui/misc";
+import { Avatar, displayName, shortName, Spinner } from "../ui/misc";
 
-type Tab = "jugadores" | "fechas" | "canchas" | "premios" | "sponsors";
+type Tab = "jugadores" | "fechas" | "canchas" | "partidos" | "premios" | "sponsors";
 
 export function Admin() {
   const nav = useNav();
@@ -37,12 +38,14 @@ export function Admin() {
         <button className={tab === "jugadores" ? "on" : ""} onClick={() => setTab("jugadores")}>Jugadores</button>
         <button className={tab === "fechas" ? "on" : ""} onClick={() => setTab("fechas")}>Fechas</button>
         <button className={tab === "canchas" ? "on" : ""} onClick={() => setTab("canchas")}>Canchas</button>
+        <button className={tab === "partidos" ? "on" : ""} onClick={() => setTab("partidos")}>Partidos</button>
         <button className={tab === "premios" ? "on" : ""} onClick={() => setTab("premios")}>Premios</button>
         <button className={tab === "sponsors" ? "on" : ""} onClick={() => setTab("sponsors")}>Sponsors</button>
       </div>
       {tab === "jugadores" && <PlayersPanel />}
       {tab === "fechas" && <FixturesPanel />}
       {tab === "canchas" && <CoursesPanel />}
+      {tab === "partidos" && <MatchesPanel />}
       {tab === "premios" && <AwardsPanel />}
       {tab === "sponsors" && <SponsorsPanel />}
     </>
@@ -400,6 +403,77 @@ function SponsorsPanel() {
                 <div className="muted" style={{ fontSize: 11.5 }}>{s.tier ?? ""}</div>
               </div>
               <button className="mini-btn danger" onClick={() => onDel(s.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ---------------- Partidos (parejas) ---------------- */
+function MatchesPanel() {
+  const { edition, teams } = useAppData();
+  const [fixtures, setFixtures] = useState<(Fixture & { courseName: string | null })[]>([]);
+  const [fixtureId, setFixtureId] = useState("");
+  const [roster, setRoster] = useState<RosterRow[]>([]);
+  const [matches, setMatches] = useState<LiveMatch[] | null>(null);
+  const [pa1, setPa1] = useState(""); const [pa2, setPa2] = useState("");
+  const [tb1, setTb1] = useState(""); const [tb2, setTb2] = useState("");
+
+  const patoTeam = teams.find((t) => t.name === "Pato");
+  const tanoTeam = teams.find((t) => t.name === "Tano");
+
+  async function refreshMatches() { if (!fixtureId) { setMatches([]); return; } setMatches(await getMatchesForFixture(fixtureId)); }
+  useEffect(() => {
+    if (!edition) return;
+    getFixtures(edition.id).then((fx) => { setFixtures(fx); if (fx[0]) setFixtureId((x) => x || fx[0].id); });
+    getRoster(edition.id).then((r) => setRoster(r as unknown as RosterRow[]));
+  }, [edition]);
+  useEffect(() => { refreshMatches(); /* eslint-disable-next-line */ }, [fixtureId]);
+
+  const patoPlayers = roster.filter((r) => r.team_id === patoTeam?.id);
+  const tanoPlayers = roster.filter((r) => r.team_id === tanoTeam?.id);
+
+  async function onCreate() {
+    if (!fixtureId || !patoTeam || !tanoTeam) return;
+    const patoIds = [pa1, pa2].filter(Boolean);
+    const tanoIds = [tb1, tb2].filter(Boolean);
+    if (!patoIds.length || !tanoIds.length) return;
+    await createMatch(fixtureId, patoTeam.id, tanoTeam.id, patoIds, tanoIds);
+    setPa1(""); setPa2(""); setTb1(""); setTb2(""); refreshMatches();
+  }
+  async function onDel(id: string) { if (!confirm("¿Borrar este partido?")) return; await deleteMatch(id); refreshMatches(); }
+
+  const opt = (list: RosterRow[]) => list.map((r) => <option key={r.player_id} value={r.player_id}>{displayName(r.players.full_name)}</option>);
+
+  return (
+    <>
+      <label className="form-lbl" style={{ marginTop: 4 }}>Fecha</label>
+      <select className="field" value={fixtureId} onChange={(e) => setFixtureId(e.target.value)}>
+        {fixtures.map((f) => <option key={f.id} value={f.id}>Día {f.day_no}{f.courseName ? ` · ${f.courseName}` : ""}</option>)}
+        {fixtures.length === 0 && <option value="">Sin fechas</option>}
+      </select>
+
+      <div className="card pad" style={{ marginTop: 10 }}>
+        <div className="eyebrow" style={{ marginBottom: 6, color: "var(--pato)" }}>🦆 Pareja Pato</div>
+        <div className="grid2"><select className="field" value={pa1} onChange={(e) => setPa1(e.target.value)}><option value="">Jugador 1</option>{opt(patoPlayers)}</select>
+          <select className="field" value={pa2} onChange={(e) => setPa2(e.target.value)}><option value="">Jugador 2</option>{opt(patoPlayers)}</select></div>
+        <div className="eyebrow" style={{ margin: "12px 0 6px", color: "var(--tano)" }}>🇮🇹 Pareja Tano</div>
+        <div className="grid2"><select className="field" value={tb1} onChange={(e) => setTb1(e.target.value)}><option value="">Jugador 1</option>{opt(tanoPlayers)}</select>
+          <select className="field" value={tb2} onChange={(e) => setTb2(e.target.value)}><option value="">Jugador 2</option>{opt(tanoPlayers)}</select></div>
+        <button className="btn-primary" onClick={onCreate}>Crear partido</button>
+      </div>
+
+      <div className="sec-title"><h2>Partidos del día</h2></div>
+      {!matches ? <Spinner /> : (
+        <div className="card pad">
+          {matches.length === 0 && <div className="muted">Sin partidos cargados.</div>}
+          {matches.map((m) => (
+            <div key={m.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 2px", borderBottom: "1px solid var(--line-soft)", fontSize: 12 }}>
+              <div style={{ flex: 1 }}>{m.sideA.map((p) => shortName(p.full_name)).join(" / ")} <span style={{ color: "var(--ink-faint)" }}>vs</span> {m.sideB.map((p) => shortName(p.full_name)).join(" / ")}</div>
+              <span className="muted" style={{ fontSize: 10.5 }}>{m.status}</span>
+              <button className="mini-btn danger" onClick={() => onDel(m.id)}>✕</button>
             </div>
           ))}
         </div>

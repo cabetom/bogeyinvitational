@@ -4,42 +4,42 @@ import { getDayResults, type DayResults } from "../lib/queries_matches";
 import { getRyderStandings, type RyderStandings } from "../lib/queries";
 import { displayName, shortName, Spinner } from "../ui/misc";
 
+const fmtPts = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+
 function RyderBoard({ s }: { s: RyderStandings }) {
-  const { patoPts, tanoPts, totalMatches, played, pointsToWin } = s;
+  const { patoPts, tanoPts, totalMatches, played, live, toWin, toRetain, champion } = s;
   if (totalMatches === 0) {
     return <div className="center-msg" style={{ padding: "22px 20px" }}>Todavía no hay partidos cargados para esta edición.</div>;
   }
+  const patoGoal = champion === "Pato" ? toRetain : toWin;
+  const tanoGoal = champion === "Tano" ? toRetain : toWin;
+  const patoLbl = champion === "Pato" ? "para retener" : "para ganar";
+  const tanoLbl = champion === "Tano" ? "para retener" : "para ganar";
   const patoW = (patoPts / totalMatches) * 100;
   const tanoW = (tanoPts / totalMatches) * 100;
-  const needP = Math.max(0, pointsToWin - patoPts);
-  const needT = Math.max(0, pointsToWin - tanoPts);
-  const patoWon = needP === 0;
-  const tanoWon = needT === 0;
-  const fmt = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
-
-  const status = (won: boolean, need: number) =>
-    won ? "¡Copa asegurada! 🏆" : `necesita ${fmt(need)} pto${need === 1 ? "" : "s"}`;
+  const pending = totalMatches - played;
 
   return (
-    <div className="ryder">
-      <div className="ryder-head">
-        <div className="rt pato"><span className="dot pato" /> Pato</div>
-        <div className="rmid">
-          <b className="tabular">{fmt(patoPts)}</b><span>–</span><b className="tabular">{fmt(tanoPts)}</b>
-        </div>
-        <div className="rt tano">Tano <span className="dot tano" /></div>
+    <div className="ryderx">
+      <div className="rx-top">
+        <div className="rx-goal"><span className="e">🦆</span> <b>{fmtPts(patoGoal)}</b> <span className="l">{patoLbl}</span></div>
+        <div className="rx-mid">{played}/{totalMatches} completos</div>
+        <div className="rx-goal end"><span className="l">{tanoLbl}</span> <b>{fmtPts(tanoGoal)}</b> <span className="e">🇮🇹</span></div>
       </div>
-      <div className="ryder-bar">
-        <div className="rp" style={{ width: `${patoW}%` }} />
-        <div className="rt-fill" style={{ width: `${tanoW}%` }} />
-        <div className="rwin" style={{ left: "50%" }} title="Línea para ganar la Copa" />
+      <div className="rx-scores">
+        <div className="rx-sc pato tabular">{fmtPts(patoPts)}</div>
+        <div className="rx-sc tano tabular">{fmtPts(tanoPts)}</div>
       </div>
-      <div className="ryder-legend">
-        <span className={patoWon ? "won" : ""}>{status(patoWon, needP)}</span>
-        <span className="mid">Se gana con {fmt(pointsToWin)} de {totalMatches}</span>
-        <span className={tanoWon ? "won" : ""}>{status(tanoWon, needT)}</span>
+      <div className="rx-bar" style={{ ["--ticks" as any]: totalMatches }}>
+        <div className="rx-p" style={{ width: `${patoW}%` }} />
+        <div className="rx-t" style={{ width: `${tanoW}%` }} />
+        <div className="rx-center" />
       </div>
-      <div className="ryder-sub">{played} de {totalMatches} partidos jugados · {totalMatches - played} por jugar</div>
+      <div className="rx-bottom">
+        <span>{live} en juego</span>
+        <span>{pending} pendientes</span>
+        <span>{live} en juego</span>
+      </div>
     </div>
   );
 }

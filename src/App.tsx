@@ -13,15 +13,16 @@ import { Premios, Viaje } from "./screens/Secciones";
 import { Presupuesto } from "./screens/Presupuesto";
 import { Camionetas } from "./screens/Camionetas";
 import { Admin } from "./screens/Admin";
+import { EnVivo } from "./screens/EnVivo";
 import { Spinner, displayName } from "./ui/misc";
 
 export type Screen =
   | "inicio" | "ranking" | "cargar" | "equipos" | "more"
-  | "premios" | "viaje" | "vans" | "presu" | "perfil" | "admin";
+  | "premios" | "viaje" | "vans" | "presu" | "perfil" | "admin" | "live";
 
 const TOP: Record<Screen, Screen> = {
   inicio: "inicio", ranking: "ranking", cargar: "cargar", equipos: "equipos", more: "more",
-  premios: "more", viaje: "more", vans: "more", presu: "more", perfil: "more", admin: "more",
+  premios: "more", viaje: "more", vans: "more", presu: "more", perfil: "more", admin: "more", live: "equipos",
 };
 
 const NavCtx = createContext<(s: Screen) => void>(() => {});
@@ -90,7 +91,7 @@ function Shell() {
   const body: Record<Screen, ReactNode> = {
     inicio: <Home />, ranking: <Ranking />, equipos: <Equipos />, cargar: <Cargar />,
     more: <Mas />, premios: <Premios />, viaje: <Viaje />, vans: <Camionetas />,
-    presu: <Presupuesto />, perfil: <Perfil />, admin: <Admin />,
+    presu: <Presupuesto />, perfil: <Perfil />, admin: <Admin />, live: <EnVivo />,
   };
 
   const top = TOP[screen];

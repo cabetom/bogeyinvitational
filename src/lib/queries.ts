@@ -106,36 +106,60 @@ export interface RyderStandings {
   tanoPts: number;
   totalMatches: number;
   played: number;
-  pointsToWin: number;
+  live: number;
+  toWin: number;          // puntos para GANAR la copa (challenger)
+  toRetain: number;       // puntos para RETENER (campeón defensor, medio punto menos)
+  champion: "Pato" | "Tano" | null; // campeón defensor (ganó la edición anterior)
 }
 
-/** Standings estilo Ryder Cup: puntos por equipo (empate = 0.5 c/u) y cuánto falta para ganar. */
+/** Standings estilo Ryder Cup: puntos por equipo (empate = 0.5) + cuánto falta para ganar/retener. */
 export async function getRyderStandings(editionId: string): Promise<RyderStandings> {
-  const [teams, results, count] = await Promise.all([
+  const [teams, results, count, eds] = await Promise.all([
     getTeams(editionId),
     supabase
       .from("match_results")
-      .select("winner_side, winner_team_id, matches!inner(fixtures!inner(edition_id))")
+      .select("winner_side, winner_team_id, status, matches!inner(fixtures!inner(edition_id))")
       .eq("matches.fixtures.edition_id", editionId),
     supabase
       .from("matches")
       .select("id, fixtures!inner(edition_id)", { count: "exact", head: true })
       .eq("fixtures.edition_id", editionId),
+    getEditions(),
   ]);
   if (results.error) throw results.error;
 
   const pato = teams.find((t) => t.name === "Pato") ?? null;
   const tano = teams.find((t) => t.name === "Tano") ?? null;
-  let patoPts = 0, tanoPts = 0, played = 0;
-  for (const r of (results.data ?? []) as { winner_side: string | null; winner_team_id: string | null }[]) {
+  let patoPts = 0, tanoPts = 0, played = 0, live = 0;
+  for (const r of (results.data ?? []) as { winner_side: string | null; winner_team_id: string | null; status: string | null }[]) {
+    if (r.status === "en_juego") live++;
+    if (!r.winner_side) continue; // solo cuentan los finales
     played++;
     if (r.winner_side === "H") { patoPts += 0.5; tanoPts += 0.5; }
-    else if (r.winner_team_id && r.winner_team_id === pato?.id) patoPts += 1;
-    else if (r.winner_team_id && r.winner_team_id === tano?.id) tanoPts += 1;
+    else if (r.winner_team_id === pato?.id) patoPts += 1;
+    else if (r.winner_team_id === tano?.id) tanoPts += 1;
   }
   const totalMatches = Math.max(count.count ?? 0, played);
-  const pointsToWin = totalMatches > 0 ? Math.floor(totalMatches / 2) + (totalMatches % 2 === 0 ? 0.5 : 1) : 0;
-  return { pato, tano, patoPts, tanoPts, totalMatches, played, pointsToWin };
+  const toWin = totalMatches > 0 ? Math.floor(totalMatches / 2) + 1 : 0;
+  const toRetain = totalMatches > 0 ? toWin - 0.5 : 0;
+
+  // Campeón defensor = ganador de la edición anterior
+  let champion: "Pato" | "Tano" | null = null;
+  const cur = eds.find((e) => e.id === editionId);
+  const prev = cur ? eds.filter((e) => e.year < cur.year).sort((a, b) => b.year - a.year)[0] : undefined;
+  if (prev) {
+    const { data } = await supabase
+      .from("awards")
+      .select("team_id, note")
+      .eq("edition_id", prev.id)
+      .eq("category", "teams")
+      .maybeSingle();
+    const hay = `${(data as any)?.note ?? ""} ${(data as any)?.team_id ?? ""}`.toLowerCase();
+    if (hay.includes("tano")) champion = "Tano";
+    else if (hay.includes("pato")) champion = "Pato";
+  }
+
+  return { pato, tano, patoPts, tanoPts, totalMatches, played, live, toWin, toRetain, champion };
 }
 
 /** Récord de matches por jugador (para MVP y perfil). */

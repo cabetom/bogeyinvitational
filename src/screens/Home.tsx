@@ -45,6 +45,12 @@ export function Home() {
         </div>
       </div>
 
+      <button className="live-cta" onClick={() => nav("live")}>
+        <span className="rd" />
+        <div><div className="t">Partidos en vivo</div><div className="s">Seguí los fourball hoyo a hoyo</div></div>
+        <span className="go">›</span>
+      </button>
+
       {myRow && (
         <>
           <div className="sec-title"><h2>Vos, hasta acá</h2><button className="link" onClick={() => nav("perfil")}>Mi perfil →</button></div>

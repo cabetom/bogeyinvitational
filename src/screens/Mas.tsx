@@ -39,6 +39,7 @@ export function Mas() {
   const { player } = useAuth();
 
   const rows: { icon: string; title: string; sub: string; to: Parameters<typeof nav>[0] }[] = [
+    { icon: "🔴", title: "Partidos en vivo", sub: "Seguí los fourball hoyo a hoyo", to: "live" },
     { icon: "🏆", title: "Premios", sub: "Palmarés y premios de la edición", to: "premios" },
     { icon: "📍", title: "El viaje", sub: "Canchas, fechas y logística", to: "viaje" },
     { icon: "🚐", title: "Camionetas", sub: "Quién va con quién · ida y vuelta", to: "vans" },
