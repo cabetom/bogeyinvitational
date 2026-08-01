@@ -9,6 +9,17 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Bogey Invitational</title>
+    <script>
+      // Tema por defecto: claro. Respeta la elección guardada del usuario.
+      (function () {
+        try {
+          var t = localStorage.getItem("bogey-theme") || "light";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

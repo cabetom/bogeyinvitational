@@ -26,8 +26,7 @@ export function Login() {
 
   return (
     <div className="login">
-      <i className="logo l-badge" role="img" aria-label="Bogey Invitational" />
-      <h1>Bogey Invitational</h1>
+      <img className="logo-orig" src="/logo-original.png" alt="Bogey Invitational" />
       <p>Entrá con tu cuenta de Google para cargar tus tarjetas y ver el torneo.</p>
       <button className="btn-google" disabled={busy} onClick={signInGoogle}>
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">

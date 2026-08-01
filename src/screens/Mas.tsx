@@ -1,5 +1,38 @@
+import { useEffect, useState } from "react";
 import { useNav } from "../App";
 import { useAuth } from "../auth/AuthProvider";
+import { installAvailable, isIOS, isStandalone, onInstallChange, promptInstall } from "../lib/pwa";
+
+function InstallApp() {
+  const [avail, setAvail] = useState(installAvailable());
+  const [tip, setTip] = useState(false);
+  useEffect(() => onInstallChange(() => setAvail(installAvailable())), []);
+
+  if (isStandalone()) return null; // ya está instalada
+
+  async function onClick() {
+    if (avail) {
+      await promptInstall();
+    } else {
+      setTip(true); // iOS u otros: mostrar instrucciones
+    }
+  }
+
+  return (
+    <div className="install-row">
+      <button className="btn-ghost" onClick={onClick}>📲 Instalar la app en tu celu</button>
+      {tip && (
+        <div className="ios-tip">
+          {isIOS() ? (
+            <>En iPhone: tocá el botón <b>Compartir</b> (el cuadrado con la flecha ↑) y elegí <b>“Agregar a inicio”</b>.</>
+          ) : (
+            <>En tu navegador, abrí el menú (⋮) y elegí <b>“Instalar app”</b> o <b>“Agregar a pantalla de inicio”</b>.</>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Mas() {
   const nav = useNav();
@@ -35,6 +68,7 @@ export function Mas() {
           </button>
         )}
       </div>
+      <InstallApp />
     </>
   );
 }
