@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAppData } from "../data/AppData";
 import { useAuth } from "../auth/AuthProvider";
 import { useNav } from "../App";
+import { supabase } from "../lib/supabase";
 import { getFixtures } from "../lib/queries_matches";
 import { getMatchesForFixture, saveLive, finishMatch, type LiveMatch } from "../lib/liveMatches";
 import type { Fixture } from "../lib/types";
@@ -42,10 +43,14 @@ export function EnVivo() {
   }, [fixtureId]);
 
   useEffect(() => { setMatches(null); refresh(); }, [refresh]);
-  // auto-refresh cada 15s para ver el vivo de todos
+  // Realtime instantáneo + fallback de auto-refresh cada 20s
   useEffect(() => {
-    const t = setInterval(refresh, 15000);
-    return () => clearInterval(t);
+    const ch = supabase
+      .channel("envivo-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "match_results" }, () => refresh())
+      .subscribe();
+    const t = setInterval(refresh, 20000);
+    return () => { supabase.removeChannel(ch); clearInterval(t); };
   }, [refresh]);
 
   if (!edition) return <Spinner />;

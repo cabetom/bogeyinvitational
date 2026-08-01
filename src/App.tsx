@@ -1,7 +1,8 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth/AuthProvider";
 import { AppDataProvider, useAppData } from "./data/AppData";
-import { isSupabaseConfigured } from "./lib/supabase";
+import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { notify } from "./lib/notify";
 import { Login } from "./screens/Login";
 import { Home } from "./screens/Home";
 import { Ranking } from "./screens/Ranking";
@@ -81,7 +82,20 @@ function TickerBanner() {
 
 function Shell() {
   const [screen, setScreen] = useState<Screen>("inicio");
-  const { editions, selectedEditionId, setEditionId, teams, teamScore } = useAppData();
+  const { editions, selectedEditionId, setEditionId, teams, teamScore, reload } = useAppData();
+
+  // Realtime: cualquier cambio en un partido refresca el marcador de toda la app + notifica.
+  useEffect(() => {
+    const ch = supabase
+      .channel("rt-matches")
+      .on("postgres_changes", { event: "*", schema: "public", table: "match_results" }, (payload) => {
+        reload();
+        const row = payload.new as { status?: string } | null;
+        if (row?.status === "final") notify("Bogey Invitational", "Se cerró un partido ⛳ — mirá cómo va la Copa");
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [reload]);
 
   const patoId = teams.find((t) => t.name === "Pato")?.id;
   const tanoId = teams.find((t) => t.name === "Tano")?.id;

@@ -1,20 +1,46 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppData } from "../data/AppData";
 import { useAuth } from "../auth/AuthProvider";
 import { useNav } from "../App";
 import { getPlayerHistory, type HistoryRow } from "../lib/queries_matches";
+import { uploadAvatar } from "../lib/storage";
+import { requestNotify, notifyPermission } from "../lib/notify";
 import { Avatar, displayName, shortName, Spinner } from "../ui/misc";
 
 export function Perfil() {
   const nav = useNav();
-  const { player, signOut } = useAuth();
-  const { edition, ranking, records } = useAppData();
+  const { player, signOut, refreshPlayer } = useAuth();
+  const { edition, ranking, records, reload } = useAppData();
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [notif, setNotif] = useState(notifyPermission());
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!player || !edition) return;
     getPlayerHistory(player.id, edition.id).then(setHistory).catch(() => setHistory([]));
   }, [player, edition]);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !player) return;
+    setUploading(true);
+    try {
+      await uploadAvatar(player.id, file);
+      await refreshPlayer();
+      reload();
+    } catch (err) {
+      alert("No se pudo subir la foto: " + (err instanceof Error ? err.message : ""));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function toggleNotif() {
+    const p = await requestNotify();
+    setNotif(p);
+    if (p !== "granted") alert("Activá las notificaciones en los permisos del navegador para recibir avisos.");
+  }
 
   if (!player) return <div className="center-msg">No hay jugador vinculado a tu usuario.</div>;
 
@@ -26,7 +52,11 @@ export function Perfil() {
     <>
       <button className="back" onClick={() => nav("more")}>‹ Volver a Más</button>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "8px 0 4px" }}>
-        <Avatar player={player} team={team} size={82} />
+        <button className="avatar-edit" onClick={() => fileRef.current?.click()} disabled={uploading} aria-label="Cambiar foto">
+          <Avatar player={player} team={team} size={88} />
+          <span className="cam">{uploading ? "…" : "📷"}</span>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
         <h3 style={{ fontFamily: "var(--serif)", fontSize: 20, fontWeight: 600, marginTop: 12 }}>{displayName(player.full_name)}</h3>
         <div style={{ display: "flex", gap: 7, alignItems: "center", marginTop: 6, flexWrap: "wrap", justifyContent: "center" }}>
           {team && <span className={`chip ${team.name.toLowerCase()}`}>Equipo {team.name}</span>}
@@ -63,7 +93,14 @@ export function Perfil() {
         </div>
       )}
 
-      <button className="btn-ghost" style={{ marginTop: 18 }} onClick={signOut}>Cerrar sesión</button>
+      <div className="sec-title"><h2>Ajustes</h2></div>
+      <button className="btn-ghost" style={{ marginTop: 0 }} onClick={toggleNotif}>
+        {notif === "granted" ? "🔔 Notificaciones activadas" : "🔕 Activar notificaciones"}
+      </button>
+      <button className="btn-ghost" onClick={() => fileRef.current?.click()} disabled={uploading}>
+        {uploading ? "Subiendo…" : "📷 Cambiar foto de perfil"}
+      </button>
+      <button className="btn-ghost" onClick={signOut}>Cerrar sesión</button>
     </>
   );
 }

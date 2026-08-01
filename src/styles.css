@@ -334,3 +334,8 @@ a{color:inherit}
 .live-cta .t{font-weight:700;font-size:14px}
 .live-cta .s{font-size:11.5px;opacity:.85}
 .live-cta .go{margin-left:auto;font-size:18px}
+
+/* ---------- avatar edit ---------- */
+.avatar-edit{position:relative;border:0;background:none;padding:0;cursor:pointer;line-height:0}
+.avatar-edit .cam{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:var(--shadow)}
+.avatar-edit:disabled{opacity:.7}
