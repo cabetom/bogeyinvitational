@@ -9,6 +9,7 @@ export interface Edition {
   start_date: string | null;
   end_date: string | null;
   is_current: boolean;
+  total_points: number | null;
 }
 
 export interface Player {

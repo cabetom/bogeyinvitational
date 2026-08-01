@@ -139,13 +139,14 @@ export async function getRyderStandings(editionId: string): Promise<RyderStandin
     else if (r.winner_team_id === pato?.id) patoPts += 1;
     else if (r.winner_team_id === tano?.id) tanoPts += 1;
   }
-  const totalMatches = Math.max(count.count ?? 0, played);
+  const cur = eds.find((e) => e.id === editionId);
+  const planned = cur?.total_points ?? 0;
+  const totalMatches = Math.max(count.count ?? 0, played, planned);
   const toWin = totalMatches > 0 ? Math.floor(totalMatches / 2) + 1 : 0;
   const toRetain = totalMatches > 0 ? toWin - 0.5 : 0;
 
   // Campeón defensor = ganador de la edición anterior
   let champion: "Pato" | "Tano" | null = null;
-  const cur = eds.find((e) => e.id === editionId);
   const prev = cur ? eds.filter((e) => e.year < cur.year).sort((a, b) => b.year - a.year)[0] : undefined;
   if (prev) {
     const { data } = await supabase

@@ -56,6 +56,12 @@ export async function deleteFixture(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Define los puntos totales en juego (Ryder) de una edición. */
+export async function setEditionTotalPoints(editionId: string, total: number | null): Promise<void> {
+  const { error } = await supabase.from("editions").update({ total_points: total }).eq("id", editionId);
+  if (error) throw error;
+}
+
 /** Crea una edición nueva (año) y la marca como actual si se pide. */
 export async function addEdition(year: number, makeCurrent: boolean): Promise<void> {
   const id = `ed-${year}`;

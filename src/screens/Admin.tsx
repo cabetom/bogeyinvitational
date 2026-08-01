@@ -6,7 +6,7 @@ import { getRoster } from "../lib/queries";
 import { getCourses, getFixtures } from "../lib/queries_matches";
 import { addPlayerToEdition, removeFromEdition, setPlayerAdmin } from "../lib/admin";
 import {
-  addFixture, deleteFixture, getCourseHoles, saveCourseHoles, addCourse, type HoleRow,
+  addFixture, deleteFixture, getCourseHoles, saveCourseHoles, addCourse, setEditionTotalPoints, type HoleRow,
 } from "../lib/adminSetup";
 import { getAwards, addAward, deleteAward, AWARD_CATS, awardIcon, type AwardRow } from "../lib/awards";
 import { createMatch, deleteMatch, getMatchesForFixture, type LiveMatch } from "../lib/liveMatches";
@@ -135,12 +135,24 @@ function FixturesPanel() {
   const [date, setDate] = useState("");
   const [courseId, setCourseId] = useState("");
   const [modality, setModality] = useState<Modality>("fourball");
+  const [totalPts, setTotalPts] = useState("");
 
   async function refresh() {
     if (!edition) return;
     setFixtures(await getFixtures(edition.id));
   }
-  useEffect(() => { refresh(); getCourses().then((c) => { setCourses(c); if (c[0]) setCourseId((x) => x || c[0].id); }); /* eslint-disable-next-line */ }, [edition]);
+  useEffect(() => {
+    refresh();
+    setTotalPts(edition?.total_points != null ? String(edition.total_points) : "");
+    getCourses().then((c) => { setCourses(c); if (c[0]) setCourseId((x) => x || c[0].id); });
+    /* eslint-disable-next-line */
+  }, [edition]);
+
+  async function saveTotal() {
+    if (!edition) return;
+    await setEditionTotalPoints(edition.id, totalPts ? Number(totalPts) : null);
+    reload();
+  }
 
   async function onAdd() {
     if (!edition) return;
@@ -156,6 +168,12 @@ function FixturesPanel() {
   return (
     <>
       <div className="card pad">
+        <label className="form-lbl" style={{ marginTop: 0 }}>Puntos en juego del torneo (para el tablero Ryder)</label>
+        <input className="field tabular" type="number" min={0} value={totalPts} onChange={(e) => setTotalPts(e.target.value)} placeholder="Ej: 20" />
+        <button className="btn-primary" onClick={saveTotal}>Guardar puntos en juego</button>
+      </div>
+
+      <div className="card pad" style={{ marginTop: 12 }}>
         <label className="form-lbl" style={{ marginTop: 0 }}>Fecha (día)</label>
         <input className="field" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <label className="form-lbl">Cancha</label>
