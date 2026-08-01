@@ -9,7 +9,8 @@ import { Equipos } from "./screens/Equipos";
 import { Cargar } from "./screens/Cargar";
 import { Mas } from "./screens/Mas";
 import { Perfil } from "./screens/Perfil";
-import { Premios, Viaje, Camionetas, Presupuesto } from "./screens/Secciones";
+import { Premios, Viaje, Presupuesto } from "./screens/Secciones";
+import { Camionetas } from "./screens/Camionetas";
 import { Admin } from "./screens/Admin";
 import { Spinner } from "./ui/misc";
 

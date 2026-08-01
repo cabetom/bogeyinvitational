@@ -115,12 +115,6 @@ function Soon({ icon, title, text }: { icon: string; title: string; text: string
   );
 }
 
-export function Camionetas() {
-  return (
-    <><Back /><Soon icon="🚐" title="Camionetas" text="Acá vas a asignar quién maneja y con quién viaja, de ida y de vuelta. Lo activamos cuando definamos vehículos y fechas." /></>
-  );
-}
-
 export function Presupuesto() {
   return (
     <><Back /><Soon icon="💸" title="Presupuesto y gastos" text="Presupuesto estimado y Splitwise interno: quién pagó qué y cómo se salda. Lo activamos al cargar los primeros gastos." /></>

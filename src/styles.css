@@ -230,3 +230,30 @@ a{color:inherit}
 .mini-btn:hover{border-color:var(--pine-soft);color:var(--pine)}
 .mini-btn.danger{color:var(--loss)}
 .mini-btn.danger:hover{border-color:var(--loss);color:var(--loss)}
+
+/* ---------- cargar hoyo por hoyo ---------- */
+.holes-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:4px}
+.hole{display:flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:7px 10px}
+.hole .hn{font-size:11px;font-weight:700;color:var(--ink-soft);min-width:42px;line-height:1.1}
+.hole .hn span{display:block;font-size:9px;color:var(--ink-faint);font-weight:600}
+.hin{width:54px;text-align:center;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;padding:9px 4px;font-size:16px;color:var(--ink);appearance:textfield}
+.hole .hp{margin-left:auto;font-size:11px;font-weight:700;color:var(--ink-faint);min-width:26px;text-align:right}
+.hole .hp.good{color:var(--win)}
+.net-total{display:flex;align-items:center;justify-content:space-between;margin-top:14px;background:linear-gradient(160deg,var(--pine),var(--pine-deep));color:#F2EFE2;border-radius:14px;padding:13px 18px}
+.net-total span{font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:#B9C9B4}
+.net-total b{font-family:var(--serif);font-size:30px}
+.stepper-row{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:6px}
+.stepper-row>div{font-family:var(--serif);font-size:20px;color:var(--ink-soft)}
+.stepper-row>div b{font-size:36px;color:var(--pine)}
+.stepper-row button{width:48px;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--pine);font-size:26px;cursor:pointer}
+
+/* ---------- admin fechas/canchas ---------- */
+.adm-tabs{margin:2px 0 10px}
+.hole-edit{display:grid;grid-template-columns:46px 1fr 1fr;gap:8px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line-soft)}
+.hole-edit:last-child{border-bottom:0}
+.hole-edit .hl{font-size:12px;font-weight:700;color:var(--ink-soft)}
+.hole-edit input{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;font-size:14px;color:var(--ink);text-align:center;width:100%;appearance:textfield}
+.hole-edit .cap-lbl{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);text-align:center}
+.fx-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line-soft)}
+.fx-row:last-child{border-bottom:0}
+.fx-row .d{width:30px;height:30px;border-radius:8px;background:var(--pine);color:#F2EFE2;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:13px;flex:0 0 auto}

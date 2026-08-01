@@ -147,13 +147,42 @@ export async function upsertScorecardTotal(
   fixtureId: string,
   playerId: string,
   stableford: number,
-  submittedBy: string
+  submittedBy: string,
+  handicap: number | null = null
 ): Promise<void> {
   const { error } = await supabase
     .from("scorecards")
     .upsert(
-      { fixture_id: fixtureId, player_id: playerId, stableford, entry_mode: "total", submitted_by: submittedBy },
+      { fixture_id: fixtureId, player_id: playerId, stableford, entry_mode: "total", handicap, submitted_by: submittedBy },
       { onConflict: "fixture_id,player_id" }
     );
   if (error) throw error;
+}
+
+/** Guarda la vuelta hoyo por hoyo + hándicap; el stableford neto ya viene calculado. */
+export async function saveHoleByHole(
+  fixtureId: string,
+  playerId: string,
+  handicap: number,
+  grossByHole: Record<number, number>,
+  stableford: number,
+  submittedBy: string
+): Promise<void> {
+  const { data, error } = await supabase
+    .from("scorecards")
+    .upsert(
+      { fixture_id: fixtureId, player_id: playerId, stableford, entry_mode: "hole_by_hole", handicap, submitted_by: submittedBy },
+      { onConflict: "fixture_id,player_id" }
+    )
+    .select("id")
+    .single();
+  if (error) throw error;
+  const scId = (data as { id: string }).id;
+  const rows = Object.entries(grossByHole)
+    .filter(([, v]) => v != null && v > 0)
+    .map(([h, v]) => ({ scorecard_id: scId, hole_no: Number(h), strokes: v }));
+  if (rows.length) {
+    const { error: e2 } = await supabase.from("hole_scores").upsert(rows, { onConflict: "scorecard_id,hole_no" });
+    if (e2) throw e2;
+  }
 }
