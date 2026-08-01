@@ -19,6 +19,15 @@ export async function getCurrentEdition(): Promise<Edition | null> {
   return data as Edition | null;
 }
 
+export async function getEditions(): Promise<Edition[]> {
+  const { data, error } = await supabase
+    .from("editions")
+    .select("*")
+    .order("year", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as Edition[];
+}
+
 export async function getTeams(editionId: string): Promise<Team[]> {
   const { data, error } = await supabase
     .from("teams")

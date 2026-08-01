@@ -61,9 +61,9 @@ export function Mas() {
           </button>
         ))}
         {player?.is_admin && (
-          <button className="mrow" onClick={() => alert("Panel de admin — próximamente")}>
+          <button className="mrow" onClick={() => nav("admin")}>
             <div className="mi">🛡️</div>
-            <div><div className="mt">Gestión <span className="chip admin" style={{ marginLeft: 4 }}>Admin</span></div><div className="ms">Fechas, parejas y cierre de resultados</div></div>
+            <div><div className="mt">Gestión de jugadores <span className="chip admin" style={{ marginLeft: 4 }}>Admin</span></div><div className="ms">Agregar o sacar jugadores del torneo</div></div>
             <span className="go">›</span>
           </button>
         )}

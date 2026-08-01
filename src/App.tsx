@@ -10,15 +10,16 @@ import { Cargar } from "./screens/Cargar";
 import { Mas } from "./screens/Mas";
 import { Perfil } from "./screens/Perfil";
 import { Premios, Viaje, Camionetas, Presupuesto } from "./screens/Secciones";
+import { Admin } from "./screens/Admin";
 import { Spinner } from "./ui/misc";
 
 export type Screen =
   | "inicio" | "ranking" | "cargar" | "equipos" | "more"
-  | "premios" | "viaje" | "vans" | "presu" | "perfil";
+  | "premios" | "viaje" | "vans" | "presu" | "perfil" | "admin";
 
 const TOP: Record<Screen, Screen> = {
   inicio: "inicio", ranking: "ranking", cargar: "cargar", equipos: "equipos", more: "more",
-  premios: "more", viaje: "more", vans: "more", presu: "more", perfil: "more",
+  premios: "more", viaje: "more", vans: "more", presu: "more", perfil: "more", admin: "more",
 };
 
 const NavCtx = createContext<(s: Screen) => void>(() => {});
@@ -51,7 +52,7 @@ function ThemeToggle() {
 
 function Shell() {
   const [screen, setScreen] = useState<Screen>("inicio");
-  const { edition, teams, teamScore } = useAppData();
+  const { editions, selectedEditionId, setEditionId, teams, teamScore } = useAppData();
 
   const patoId = teams.find((t) => t.name === "Pato")?.id;
   const tanoId = teams.find((t) => t.name === "Tano")?.id;
@@ -61,7 +62,7 @@ function Shell() {
   const body: Record<Screen, ReactNode> = {
     inicio: <Home />, ranking: <Ranking />, equipos: <Equipos />, cargar: <Cargar />,
     more: <Mas />, premios: <Premios />, viaje: <Viaje />, vans: <Camionetas />,
-    presu: <Presupuesto />, perfil: <Perfil />,
+    presu: <Presupuesto />, perfil: <Perfil />, admin: <Admin />,
   };
 
   const top = TOP[screen];
@@ -74,7 +75,18 @@ function Shell() {
           <ThemeToggle />
           <div className="ed">
             <b>{edScore}</b>
-            <span>Pato vs Tano{edition ? ` · ${edition.year}` : ""}</span>
+            <select
+              className="year-select"
+              value={selectedEditionId ?? ""}
+              onChange={(e) => setEditionId(e.target.value)}
+              aria-label="Elegir edición"
+            >
+              {editions.map((ed) => (
+                <option key={ed.id} value={ed.id}>
+                  Pato vs Tano · {ed.year}
+                </option>
+              ))}
+            </select>
           </div>
         </header>
 
