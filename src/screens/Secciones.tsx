@@ -3,9 +3,14 @@ import { useNav } from "../App";
 import { useAppData } from "../data/AppData";
 import { getCourses } from "../lib/queries_matches";
 import { getAwards, getAllAwards, awardIcon, type AwardRow } from "../lib/awards";
-import { getSponsors, type Sponsor } from "../lib/sponsors";
 import type { Course, Team } from "../lib/types";
 import { displayName, Spinner } from "../ui/misc";
+
+// Sponsors del torneo (fijos). Para sumar más, agregar el logo en public/sponsors/ y una línea acá.
+const SPONSORS = [
+  { name: "Ánimas Wealth Management", logo: "/sponsors/animas.png" },
+  { name: "Easy Golf", logo: "/sponsors/easygolf.webp" },
+];
 
 function Back() {
   const nav = useNav();
@@ -27,12 +32,10 @@ export function Premios() {
   const { edition, teams } = useAppData();
   const [awards, setAwards] = useState<AwardRow[] | null>(null);
   const [all, setAll] = useState<AwardRow[]>([]);
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
 
   useEffect(() => {
     if (!edition) return;
     getAwards(edition.id).then(setAwards).catch(() => setAwards([]));
-    getSponsors(edition.id).then(setSponsors).catch(() => setSponsors([]));
     getAllAwards().then(setAll).catch(() => setAll([]));
   }, [edition]);
 
@@ -67,7 +70,7 @@ export function Premios() {
         </div>
       )}
 
-      <SponsorsBlock sponsors={sponsors} />
+      <SponsorsBlock />
 
       <div className="sec-title"><h2>Palmarés</h2></div>
       <div className="card pad">
@@ -90,22 +93,15 @@ export function Premios() {
   );
 }
 
-export function SponsorsBlock({ sponsors }: { sponsors: Sponsor[] }) {
-  if (sponsors.length === 0) return null;
+export function SponsorsBlock() {
+  if (SPONSORS.length === 0) return null;
   return (
     <>
       <div className="sec-title"><h2>Sponsors</h2></div>
       <div className="sponsors-grid">
-        {sponsors.map((s) => {
-          const inner = s.logo_url
-            ? <img src={s.logo_url} alt={s.name} />
-            : <span className="sp-name">{s.name}</span>;
-          return s.website ? (
-            <a className="sponsor" key={s.id} href={s.website} target="_blank" rel="noopener" title={s.name}>{inner}</a>
-          ) : (
-            <div className="sponsor" key={s.id} title={s.name}>{inner}</div>
-          );
-        })}
+        {SPONSORS.map((s) => (
+          <div className="sponsor" key={s.name} title={s.name}><img src={s.logo} alt={s.name} /></div>
+        ))}
       </div>
     </>
   );

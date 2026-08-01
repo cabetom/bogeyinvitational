@@ -9,12 +9,11 @@ import {
   addFixture, deleteFixture, getCourseHoles, saveCourseHoles, addCourse, type HoleRow,
 } from "../lib/adminSetup";
 import { getAwards, addAward, deleteAward, AWARD_CATS, awardIcon, type AwardRow } from "../lib/awards";
-import { getSponsors, addSponsor, deleteSponsor, TIERS, type Sponsor } from "../lib/sponsors";
 import { createMatch, deleteMatch, getMatchesForFixture, type LiveMatch } from "../lib/liveMatches";
 import type { Course, Fixture, Modality, Player, Team } from "../lib/types";
 import { Avatar, displayName, shortName, Spinner } from "../ui/misc";
 
-type Tab = "jugadores" | "fechas" | "canchas" | "partidos" | "premios" | "sponsors";
+type Tab = "jugadores" | "fechas" | "canchas" | "partidos" | "premios";
 
 export function Admin() {
   const nav = useNav();
@@ -40,14 +39,12 @@ export function Admin() {
         <button className={tab === "canchas" ? "on" : ""} onClick={() => setTab("canchas")}>Canchas</button>
         <button className={tab === "partidos" ? "on" : ""} onClick={() => setTab("partidos")}>Partidos</button>
         <button className={tab === "premios" ? "on" : ""} onClick={() => setTab("premios")}>Premios</button>
-        <button className={tab === "sponsors" ? "on" : ""} onClick={() => setTab("sponsors")}>Sponsors</button>
       </div>
       {tab === "jugadores" && <PlayersPanel />}
       {tab === "fechas" && <FixturesPanel />}
       {tab === "canchas" && <CoursesPanel />}
       {tab === "partidos" && <MatchesPanel />}
       {tab === "premios" && <AwardsPanel />}
-      {tab === "sponsors" && <SponsorsPanel />}
     </>
   );
 }
@@ -344,65 +341,6 @@ function AwardsPanel() {
                 <div className="muted" style={{ fontSize: 11.5 }}>{nameOf(a)}{a.prize ? ` · ${a.prize}` : ""}{a.sponsor ? ` · 🎁 ${a.sponsor}` : ""}</div>
               </div>
               <button className="mini-btn danger" onClick={() => onDel(a.id)}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
-
-/* ---------------- Sponsors ---------------- */
-function SponsorsPanel() {
-  const { edition } = useAppData();
-  const [sponsors, setSponsors] = useState<Sponsor[] | null>(null);
-  const [name, setName] = useState("");
-  const [logo, setLogo] = useState("");
-  const [site, setSite] = useState("");
-  const [tier, setTier] = useState("oficial");
-  const [busy, setBusy] = useState(false);
-
-  async function refresh() { if (!edition) return; setSponsors(await getSponsors(edition.id)); }
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [edition]);
-
-  async function onAdd() {
-    if (!edition || !name.trim()) return;
-    setBusy(true);
-    try { await addSponsor(edition.id, { name, logoUrl: logo || null, website: site || null, tier }); setName(""); setLogo(""); setSite(""); await refresh(); }
-    finally { setBusy(false); }
-  }
-  async function onDel(id: string) { if (!confirm("¿Borrar sponsor?")) return; await deleteSponsor(id); await refresh(); }
-
-  return (
-    <>
-      <div className="card pad">
-        <label className="form-lbl" style={{ marginTop: 0 }}>Nombre del sponsor</label>
-        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Golf House" />
-        <label className="form-lbl">Logo (URL de imagen, opcional)</label>
-        <input className="field" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://.../logo.png" />
-        <label className="form-lbl">Sitio web (opcional)</label>
-        <input className="field" value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://..." />
-        <label className="form-lbl">Nivel</label>
-        <select className="field" value={tier} onChange={(e) => setTier(e.target.value)}>
-          {TIERS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
-        </select>
-        <button className="btn-primary" disabled={busy || !name.trim()} onClick={onAdd}>{busy ? "Guardando…" : "Agregar sponsor"}</button>
-      </div>
-
-      <div className="sec-title"><h2>Sponsors de {edition?.year}</h2></div>
-      {!sponsors ? <Spinner /> : (
-        <div className="card pad">
-          {sponsors.length === 0 && <div className="muted">Sin sponsors cargados.</div>}
-          {sponsors.map((s) => (
-            <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 2px", borderBottom: "1px solid var(--line-soft)" }}>
-              {s.logo_url
-                ? <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line-soft)" }} />
-                : <span style={{ fontSize: 18 }}>🏷️</span>}
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
-                <div className="muted" style={{ fontSize: 11.5 }}>{s.tier ?? ""}</div>
-              </div>
-              <button className="mini-btn danger" onClick={() => onDel(s.id)}>✕</button>
             </div>
           ))}
         </div>
