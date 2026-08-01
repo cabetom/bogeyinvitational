@@ -339,3 +339,13 @@ a{color:inherit}
 .avatar-edit{position:relative;border:0;background:none;padding:0;cursor:pointer;line-height:0}
 .avatar-edit .cam{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:var(--shadow)}
 .avatar-edit:disabled{opacity:.7}
+
+/* ---------- install banner ---------- */
+.install-banner{display:flex;align-items:center;gap:11px;background:var(--pine);color:#EFE8D6;padding:9px 12px;flex:0 0 auto}
+.install-banner .ib-icon{width:36px;height:36px;border-radius:9px;flex:0 0 auto}
+.install-banner .ib-txt{display:flex;flex-direction:column;line-height:1.25;flex:1 1 auto;min-width:0}
+.install-banner .ib-txt b{font-size:12.5px}
+.install-banner .ib-txt span{font-size:11px;color:#CFE0C9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.install-banner .ib-btn{flex:0 0 auto;background:#EFE8D6;color:var(--pine-deep);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:12.5px;cursor:pointer}
+.install-banner .ib-x{flex:0 0 auto;background:transparent;border:0;color:#9DB29A;font-size:14px;cursor:pointer;padding:6px 4px}
+@media (min-width:900px){.install-banner{display:none}}

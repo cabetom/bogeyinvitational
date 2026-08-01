@@ -3,6 +3,7 @@ import { useAuth } from "./auth/AuthProvider";
 import { AppDataProvider, useAppData } from "./data/AppData";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { notify } from "./lib/notify";
+import { installAvailable, isIOS, isStandalone, onInstallChange, promptInstall } from "./lib/pwa";
 import { Login } from "./screens/Login";
 import { Home } from "./screens/Home";
 import { Ranking } from "./screens/Ranking";
@@ -80,6 +81,35 @@ function TickerBanner() {
   );
 }
 
+function InstallBanner() {
+  const [avail, setAvail] = useState(installAvailable());
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem("bogey-install") === "dismissed"; } catch { return false; }
+  });
+  useEffect(() => onInstallChange(() => setAvail(installAvailable())), []);
+
+  if (isStandalone() || dismissed) return null;
+  const ios = isIOS();
+  if (!avail && !ios) return null; // nada para ofrecer (desktop / navegador sin soporte)
+
+  function close() {
+    setDismissed(true);
+    try { localStorage.setItem("bogey-install", "dismissed"); } catch { /* ignore */ }
+  }
+
+  return (
+    <div className="install-banner">
+      <img src="/icons/icon-192.png" alt="" className="ib-icon" />
+      <div className="ib-txt">
+        <b>Instalá la app</b>
+        <span>{ios ? "Tocá Compartir ⬆ y elegí “Agregar a inicio”" : "Accedé más rápido desde tu pantalla"}</span>
+      </div>
+      {avail && <button className="ib-btn" onClick={() => promptInstall()}>Instalar</button>}
+      <button className="ib-x" onClick={close} aria-label="Cerrar">✕</button>
+    </div>
+  );
+}
+
 function Shell() {
   const [screen, setScreen] = useState<Screen>("inicio");
   const { editions, selectedEditionId, setEditionId, teams, teamScore, reload } = useAppData();
@@ -134,6 +164,7 @@ function Shell() {
         </header>
 
         <TickerBanner />
+        <InstallBanner />
 
         <main className="scroll">
           <div className="screen" key={screen}>{body[screen]}</div>
