@@ -2,13 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { useAppData } from "../data/AppData";
 import { useAuth } from "../auth/AuthProvider";
 import { useNav } from "../App";
-import { getFixtures } from "../lib/queries_matches";
 import { getRoster } from "../lib/queries";
 import {
   getAssignments, addVehicle, deleteVehicle, joinVehicle, leaveVehicle,
   type VehicleWithSeats, type Direction,
 } from "../lib/vans";
-import type { Fixture, Player } from "../lib/types";
+import type { Player } from "../lib/types";
 import { initials, shortName, Spinner } from "../ui/misc";
 
 export function Camionetas() {
@@ -17,12 +16,9 @@ export function Camionetas() {
   const { player } = useAuth();
   const isAdmin = !!player?.is_admin;
 
-  const [fixtures, setFixtures] = useState<(Fixture & { courseName: string | null })[]>([]);
-  const [fixtureId, setFixtureId] = useState("");
   const [dir, setDir] = useState<Direction>("ida");
   const [vans, setVans] = useState<VehicleWithSeats[] | null>(null);
   const [roster, setRoster] = useState<Player[]>([]);
-
   const [vName, setVName] = useState("");
   const [vPlate, setVPlate] = useState("");
   const [vCap, setVCap] = useState(5);
@@ -30,36 +26,33 @@ export function Camionetas() {
 
   useEffect(() => {
     if (!edition) return;
-    getFixtures(edition.id).then((fx) => {
-      setFixtures(fx);
-      if (fx.length) setFixtureId((id) => id || fx[0].id);
-    });
     getRoster(edition.id).then((r) => setRoster(r.map((x: any) => x.players)));
   }, [edition]);
 
   const refresh = useCallback(() => {
-    if (!edition || !fixtureId) return;
-    getAssignments(edition.id, fixtureId, dir).then(setVans).catch(() => setVans([]));
-  }, [edition, fixtureId, dir]);
+    if (!edition) return;
+    getAssignments(edition.id, dir).then(setVans).catch(() => setVans([]));
+  }, [edition, dir]);
 
   useEffect(() => { setVans(null); refresh(); }, [refresh]);
 
   if (!edition) return <Spinner />;
 
   const myVanId = vans?.find((v) => v.seats.some((s) => s.player_id === player?.id))?.id ?? null;
+  const assignedIds = new Set(vans?.flatMap((v) => v.seats.map((s) => s.player_id)) ?? []);
 
   async function join(vehicleId: string, driver = false) {
     if (!player) return;
-    await joinVehicle(vehicleId, fixtureId, dir, player.id, driver);
+    await joinVehicle(edition!.id, vehicleId, dir, player.id, driver);
     refresh();
   }
   async function leave() {
     if (!player) return;
-    await leaveVehicle(fixtureId, dir, player.id);
+    await leaveVehicle(edition!.id, dir, player.id);
     refresh();
   }
   async function assign(vehicleId: string, playerId: string) {
-    await joinVehicle(vehicleId, fixtureId, dir, playerId, false);
+    await joinVehicle(edition!.id, vehicleId, dir, playerId, false);
     refresh();
   }
   async function onAddVehicle() {
@@ -69,22 +62,14 @@ export function Camionetas() {
     refresh();
   }
 
-  const assignedIds = new Set(vans?.flatMap((v) => v.seats.map((s) => s.player_id)) ?? []);
-
   return (
     <>
       <button className="back" onClick={() => nav("more")}>‹ Volver a Más</button>
       <div className="sec-title" style={{ marginTop: 2 }}><h2>Camionetas</h2></div>
-
-      <select className="field" value={fixtureId} onChange={(e) => setFixtureId(e.target.value)}>
-        {fixtures.map((f) => (
-          <option key={f.id} value={f.id}>Día {f.day_no}{f.courseName ? ` · ${f.courseName}` : ""}</option>
-        ))}
-        {fixtures.length === 0 && <option>Sin fechas cargadas</option>}
-      </select>
-      <div className="segbar" style={{ marginTop: 10 }}>
-        <button className={dir === "ida" ? "on" : ""} onClick={() => setDir("ida")}>Ida</button>
-        <button className={dir === "vuelta" ? "on" : ""} onClick={() => setDir("vuelta")}>Vuelta</button>
+      <p className="muted" style={{ margin: "0 4px 10px" }}>Viaje desde y hacia Tandil. Sumate a tu camioneta para la ida y para la vuelta.</p>
+      <div className="segbar">
+        <button className={dir === "ida" ? "on" : ""} onClick={() => setDir("ida")}>Ida · Tandil → Córdoba</button>
+        <button className={dir === "vuelta" ? "on" : ""} onClick={() => setDir("vuelta")}>Vuelta → Tandil</button>
       </div>
 
       {!vans ? <Spinner /> : (
@@ -135,28 +120,23 @@ export function Camionetas() {
           })}
 
           {isAdmin && (
-            <>
-              {showAdd ? (
-                <div className="card pad" style={{ marginTop: 12 }}>
-                  <label className="form-lbl" style={{ marginTop: 0 }}>Nombre / referencia</label>
-                  <input className="field" value={vName} onChange={(e) => setVName(e.target.value)} placeholder="Ej: Hilux blanca" />
-                  <label className="form-lbl">Patente</label>
-                  <input className="field" value={vPlate} onChange={(e) => setVPlate(e.target.value)} placeholder="AB 123 CD" />
-                  <label className="form-lbl">Capacidad</label>
-                  <input className="field" type="number" min={1} max={9} value={vCap} onChange={(e) => setVCap(Number(e.target.value))} />
-                  <button className="btn-primary" onClick={onAddVehicle}>Agregar camioneta</button>
-                  <button className="btn-ghost" onClick={() => setShowAdd(false)}>Cancelar</button>
-                </div>
-              ) : (
-                <button className="btn-ghost" style={{ marginTop: 12 }} onClick={() => setShowAdd(true)}>＋ Agregar camioneta</button>
-              )}
-            </>
+            showAdd ? (
+              <div className="card pad" style={{ marginTop: 12 }}>
+                <label className="form-lbl" style={{ marginTop: 0 }}>Nombre / referencia</label>
+                <input className="field" value={vName} onChange={(e) => setVName(e.target.value)} placeholder="Ej: Hilux blanca" />
+                <label className="form-lbl">Patente</label>
+                <input className="field" value={vPlate} onChange={(e) => setVPlate(e.target.value)} placeholder="AB 123 CD" />
+                <label className="form-lbl">Capacidad</label>
+                <input className="field" type="number" min={1} max={9} value={vCap} onChange={(e) => setVCap(Number(e.target.value))} />
+                <button className="btn-primary" onClick={onAddVehicle}>Agregar camioneta</button>
+                <button className="btn-ghost" onClick={() => setShowAdd(false)}>Cancelar</button>
+              </div>
+            ) : (
+              <button className="btn-ghost" style={{ marginTop: 12 }} onClick={() => setShowAdd(true)}>＋ Agregar camioneta</button>
+            )
           )}
         </>
       )}
-      <p className="muted" style={{ textAlign: "center", marginTop: 12 }}>
-        Cada uno se suma a su camioneta para la ida y la vuelta de cada día. El que maneja toca “Manejo yo”.
-      </p>
     </>
   );
 }

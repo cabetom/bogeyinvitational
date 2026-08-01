@@ -105,18 +105,4 @@ function Info({ k, v }: { k: string; v: string }) {
   );
 }
 
-function Soon({ icon, title, text }: { icon: string; title: string; text: string }) {
-  return (
-    <div className="center-msg">
-      <div style={{ fontSize: 40 }}>{icon}</div>
-      <div style={{ fontFamily: "var(--serif)", fontSize: 18, fontWeight: 600, color: "var(--ink)", marginTop: 8 }}>{title}</div>
-      <p style={{ maxWidth: 280, margin: "8px auto 0" }}>{text}</p>
-    </div>
-  );
-}
 
-export function Presupuesto() {
-  return (
-    <><Back /><Soon icon="💸" title="Presupuesto y gastos" text="Presupuesto estimado y Splitwise interno: quién pagó qué y cómo se salda. Lo activamos al cargar los primeros gastos." /></>
-  );
-}

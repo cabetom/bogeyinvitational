@@ -99,6 +99,45 @@ export async function getTeamScore(editionId: string): Promise<Record<string, nu
   return out;
 }
 
+export interface RyderStandings {
+  pato: Team | null;
+  tano: Team | null;
+  patoPts: number;
+  tanoPts: number;
+  totalMatches: number;
+  played: number;
+  pointsToWin: number;
+}
+
+/** Standings estilo Ryder Cup: puntos por equipo (empate = 0.5 c/u) y cuánto falta para ganar. */
+export async function getRyderStandings(editionId: string): Promise<RyderStandings> {
+  const [teams, results, count] = await Promise.all([
+    getTeams(editionId),
+    supabase
+      .from("match_results")
+      .select("winner_side, winner_team_id, matches!inner(fixtures!inner(edition_id))")
+      .eq("matches.fixtures.edition_id", editionId),
+    supabase
+      .from("matches")
+      .select("id, fixtures!inner(edition_id)", { count: "exact", head: true })
+      .eq("fixtures.edition_id", editionId),
+  ]);
+  if (results.error) throw results.error;
+
+  const pato = teams.find((t) => t.name === "Pato") ?? null;
+  const tano = teams.find((t) => t.name === "Tano") ?? null;
+  let patoPts = 0, tanoPts = 0, played = 0;
+  for (const r of (results.data ?? []) as { winner_side: string | null; winner_team_id: string | null }[]) {
+    played++;
+    if (r.winner_side === "H") { patoPts += 0.5; tanoPts += 0.5; }
+    else if (r.winner_team_id && r.winner_team_id === pato?.id) patoPts += 1;
+    else if (r.winner_team_id && r.winner_team_id === tano?.id) tanoPts += 1;
+  }
+  const totalMatches = Math.max(count.count ?? 0, played);
+  const pointsToWin = totalMatches > 0 ? Math.floor(totalMatches / 2) + (totalMatches % 2 === 0 ? 0.5 : 1) : 0;
+  return { pato, tano, patoPts, tanoPts, totalMatches, played, pointsToWin };
+}
+
 /** Récord de matches por jugador (para MVP y perfil). */
 export async function getMatchRecords(editionId: string): Promise<MatchRecord[]> {
   const [roster, mp] = await Promise.all([

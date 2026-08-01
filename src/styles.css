@@ -257,3 +257,23 @@ a{color:inherit}
 .fx-row{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--line-soft)}
 .fx-row:last-child{border-bottom:0}
 .fx-row .d{width:30px;height:30px;border-radius:8px;background:var(--pine);color:#F2EFE2;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;font-size:13px;flex:0 0 auto}
+
+/* ---------- ryder board ---------- */
+.ryder{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
+.ryder-head{display:flex;align-items:center;justify-content:space-between}
+.ryder-head .rt{font-family:var(--serif);font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+.ryder-head .rmid{font-family:var(--serif);font-weight:700;font-size:26px;display:flex;gap:8px;align-items:center}
+.ryder-head .rmid span{color:var(--ink-faint);font-size:18px}
+.ryder-bar{position:relative;height:16px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin:12px 0 10px;display:flex}
+.ryder-bar .rp{background:var(--pato);height:100%}
+.ryder-bar .rt-fill{background:var(--tano);height:100%;margin-left:auto}
+.ryder-bar .rwin{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--gold);box-shadow:0 0 0 1px var(--surface)}
+.ryder-legend{display:flex;justify-content:space-between;gap:8px;font-size:11px;color:var(--ink-soft);font-weight:600}
+.ryder-legend .mid{color:var(--ink-faint);text-align:center;font-weight:500}
+.ryder-legend .won{color:var(--gold);font-weight:800}
+.ryder-sub{text-align:center;font-size:11px;color:var(--ink-faint);margin-top:8px;border-top:1px solid var(--line-soft);padding-top:8px}
+
+/* ---------- expense participant picker ---------- */
+.pick-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.pick{font-size:12px;font-weight:600;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-soft);cursor:pointer}
+.pick.on{background:var(--pine);color:#F2EFE2;border-color:var(--pine)}

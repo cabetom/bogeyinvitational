@@ -1,16 +1,59 @@
 import { useEffect, useState } from "react";
 import { useAppData } from "../data/AppData";
 import { getDayResults, type DayResults } from "../lib/queries_matches";
+import { getRyderStandings, type RyderStandings } from "../lib/queries";
 import { displayName, shortName, Spinner } from "../ui/misc";
+
+function RyderBoard({ s }: { s: RyderStandings }) {
+  const { patoPts, tanoPts, totalMatches, played, pointsToWin } = s;
+  if (totalMatches === 0) {
+    return <div className="center-msg" style={{ padding: "22px 20px" }}>Todavía no hay partidos cargados para esta edición.</div>;
+  }
+  const patoW = (patoPts / totalMatches) * 100;
+  const tanoW = (tanoPts / totalMatches) * 100;
+  const needP = Math.max(0, pointsToWin - patoPts);
+  const needT = Math.max(0, pointsToWin - tanoPts);
+  const patoWon = needP === 0;
+  const tanoWon = needT === 0;
+  const fmt = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
+
+  const status = (won: boolean, need: number) =>
+    won ? "¡Copa asegurada! 🏆" : `necesita ${fmt(need)} pto${need === 1 ? "" : "s"}`;
+
+  return (
+    <div className="ryder">
+      <div className="ryder-head">
+        <div className="rt pato"><span className="dot pato" /> Pato</div>
+        <div className="rmid">
+          <b className="tabular">{fmt(patoPts)}</b><span>–</span><b className="tabular">{fmt(tanoPts)}</b>
+        </div>
+        <div className="rt tano">Tano <span className="dot tano" /></div>
+      </div>
+      <div className="ryder-bar">
+        <div className="rp" style={{ width: `${patoW}%` }} />
+        <div className="rt-fill" style={{ width: `${tanoW}%` }} />
+        <div className="rwin" style={{ left: "50%" }} title="Línea para ganar la Copa" />
+      </div>
+      <div className="ryder-legend">
+        <span className={patoWon ? "won" : ""}>{status(patoWon, needP)}</span>
+        <span className="mid">Se gana con {fmt(pointsToWin)} de {totalMatches}</span>
+        <span className={tanoWon ? "won" : ""}>{status(tanoWon, needT)}</span>
+      </div>
+      <div className="ryder-sub">{played} de {totalMatches} partidos jugados · {totalMatches - played} por jugar</div>
+    </div>
+  );
+}
 
 export function Equipos() {
   const { edition, teams, teamScore, records, loading } = useAppData();
   const [days, setDays] = useState<DayResults[] | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [ryder, setRyder] = useState<RyderStandings | null>(null);
 
   useEffect(() => {
     if (!edition) return;
-    getDayResults(edition.id).then(setDays).catch((e) => setErr(String(e)));
+    setDays(null); setRyder(null);
+    getDayResults(edition.id).then(setDays).catch(() => setDays([]));
+    getRyderStandings(edition.id).then(setRyder).catch(() => setRyder(null));
   }, [edition]);
 
   if (loading) return <Spinner />;
@@ -21,16 +64,16 @@ export function Equipos() {
 
   return (
     <>
-      <div className="sec-title" style={{ marginTop: 2 }}><h2>Copa por equipos</h2></div>
-      <div className="teamsplit">
+      <div className="sec-title" style={{ marginTop: 2 }}><h2>Copa · Ryder</h2></div>
+      {ryder ? <RyderBoard s={ryder} /> : <Spinner />}
+
+      <div className="teamsplit" style={{ marginTop: 14 }}>
         <div className="teamcard pato">
-          <div className="cap">Equipo</div><div className="nm">Pato</div>
-          <div className="capn">{pato?.captain_player_id ? "Capitán · el Pato" : " "}</div>
+          <div className="cap">Capitán · el Pato</div><div className="nm">Pato</div>
           <div className="big">{pato ? teamScore[pato.id] ?? 0 : 0}</div>
         </div>
         <div className="teamcard tano">
-          <div className="cap">Equipo</div><div className="nm">Tano</div>
-          <div className="capn">{tano?.captain_player_id ? "Capitán · el Tano" : " "}</div>
+          <div className="cap">Capitán · el Tano</div><div className="nm">Tano</div>
           <div className="big">{tano ? teamScore[tano.id] ?? 0 : 0}</div>
         </div>
       </div>
@@ -47,9 +90,8 @@ export function Equipos() {
       )}
 
       <div className="sec-title"><h2>Resultados por día</h2></div>
-      {err && <div className="center-msg">No se pudieron cargar los matches.</div>}
-      {!days && !err && <Spinner />}
-      {days?.map((d) => {
+      {days && days.length === 0 && <div className="muted" style={{ padding: "0 4px" }}>Sin partidos cargados todavía.</div>}
+      {!days ? <Spinner /> : days.map((d) => {
         const a = d.matches.filter((m) => m.winner === "A").length;
         const b = d.matches.filter((m) => m.winner === "B").length;
         return (
