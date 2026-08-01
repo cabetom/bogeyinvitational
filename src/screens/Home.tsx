@@ -1,12 +1,21 @@
+import { useEffect, useState } from "react";
 import { useAppData } from "../data/AppData";
 import { useAuth } from "../auth/AuthProvider";
 import { useNav } from "../App";
+import { getSponsors, type Sponsor } from "../lib/sponsors";
+import { SponsorsBlock } from "./Secciones";
 import { Spinner } from "../ui/misc";
 
 export function Home() {
   const { loading, error, edition, teams, teamScore, ranking, records } = useAppData();
   const { player } = useAuth();
   const nav = useNav();
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+
+  useEffect(() => {
+    if (!edition) return;
+    getSponsors(edition.id).then(setSponsors).catch(() => setSponsors([]));
+  }, [edition]);
 
   if (loading) return <Spinner />;
   if (error) return <div className="center-msg">No se pudieron cargar los datos.<br />{error}</div>;
@@ -57,6 +66,8 @@ export function Home() {
           <div className="n">⛳</div><div className="k">Ver matches</div>
         </button>
       </div>
+
+      <SponsorsBlock sponsors={sponsors} />
     </>
   );
 }

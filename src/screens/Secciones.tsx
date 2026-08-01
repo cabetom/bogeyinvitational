@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNav } from "../App";
 import { useAppData } from "../data/AppData";
-import { getAwards, getCourses, type AwardRow } from "../lib/queries_matches";
-import type { Course } from "../lib/types";
+import { getCourses } from "../lib/queries_matches";
+import { getAwards, getAllAwards, awardIcon, type AwardRow } from "../lib/awards";
+import { getSponsors, type Sponsor } from "../lib/sponsors";
+import type { Course, Team } from "../lib/types";
 import { displayName, Spinner } from "../ui/misc";
 
 function Back() {
@@ -10,57 +12,101 @@ function Back() {
   return <button className="back" onClick={() => nav("more")}>‹ Volver a Más</button>;
 }
 
-const PREMIOS = [
-  { medal: "🧥", t: "La Chaqueta · Stableford individual", s: "Mejor acumulado de las fechas" },
-  { medal: "🏆", t: "Copa por equipos", s: "Suma de fourball + individuales" },
-  { medal: "👑", t: "MVP", s: "Mejor récord de matches del torneo" },
-  { medal: "🚀", t: "Longest Drive", s: "El drive más largo del viaje" },
-  { medal: "🦆", t: "El Pato de Oro", s: "Al peor score del torneo (con cariño)" },
-];
+function titleOf(a: AwardRow): string {
+  if (a.title) return a.title;
+  const def: Record<string, string> = { teams: "Copa por equipos", stableford: "La Chaqueta", mvp: "MVP" };
+  return (a.category && def[a.category]) || "Premio";
+}
+function winnerOf(a: AwardRow, teams: Team[]): string {
+  if (a.playerName) return displayName(a.playerName);
+  if (a.team_id) return teams.find((t) => t.id === a.team_id)?.name ? `Equipo ${teams.find((t) => t.id === a.team_id)!.name}` : (a.note ?? "—");
+  return a.note ?? "A definir";
+}
 
 export function Premios() {
+  const { edition, teams } = useAppData();
   const [awards, setAwards] = useState<AwardRow[] | null>(null);
-  useEffect(() => { getAwards().then(setAwards).catch(() => setAwards([])); }, []);
+  const [all, setAll] = useState<AwardRow[]>([]);
+  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
+
+  useEffect(() => {
+    if (!edition) return;
+    getAwards(edition.id).then(setAwards).catch(() => setAwards([]));
+    getSponsors(edition.id).then(setSponsors).catch(() => setSponsors([]));
+    getAllAwards().then(setAll).catch(() => setAll([]));
+  }, [edition]);
 
   const byEdition = new Map<string, AwardRow[]>();
-  for (const a of awards ?? []) {
+  for (const a of all) {
+    if (a.edition_id === edition?.id) continue;
     if (!byEdition.has(a.edition_id)) byEdition.set(a.edition_id, []);
     byEdition.get(a.edition_id)!.push(a);
   }
-  const editions = [...byEdition.keys()].sort().reverse();
+  const pastEds = [...byEdition.keys()].sort().reverse();
 
   return (
     <>
       <Back />
-      <div className="sec-title" style={{ marginTop: 2 }}><h2>Premios</h2></div>
-      <div className="card">
-        {PREMIOS.map((p) => (
-          <div key={p.t} style={{ display: "flex", gap: 13, alignItems: "center", padding: 14, borderBottom: "1px solid var(--line-soft)" }}>
-            <div style={{ width: 42, height: 42, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--gold-soft)", fontSize: 20, flex: "0 0 auto" }}>{p.medal}</div>
-            <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{p.t}</div><div className="muted">{p.s}</div></div>
-          </div>
-        ))}
-      </div>
-
-      <div className="sec-title"><h2>Palmarés</h2></div>
-      {!awards ? <Spinner /> : (
-        <div className="card pad">
-          {editions.map((edId) => {
-            const items = byEdition.get(edId)!;
-            const teams = items.find((i) => i.category === "teams");
-            const stb = items.find((i) => i.category === "stableford");
-            const year = edId.replace("ed-", "");
-            return (
-              <div key={edId} style={{ padding: "6px 0 14px", borderBottom: "1px solid var(--line-soft)" }}>
-                <div style={{ fontFamily: "var(--serif)", fontWeight: 700, fontSize: 16 }}>{year}</div>
-                {teams && <div className="muted" style={{ marginTop: 2 }}>Equipos · <b style={{ color: "var(--ink)" }}>{teams.note}</b></div>}
-                {stb && <div className="muted">Stableford · <b style={{ color: "var(--ink)" }}>{stb.playerName ? displayName(stb.playerName) : stb.note}</b> 🧥</div>}
+      <div className="sec-title" style={{ marginTop: 2 }}><h2>Premios {edition?.year}</h2></div>
+      {!awards ? <Spinner /> : awards.length === 0 ? (
+        <div className="muted" style={{ padding: "0 4px" }}>Todavía no hay premios cargados. Un admin los agrega en Gestión → Premios.</div>
+      ) : (
+        <div className="card">
+          {awards.map((a) => (
+            <div key={a.id} style={{ display: "flex", gap: 13, alignItems: "center", padding: 14, borderBottom: "1px solid var(--line-soft)" }}>
+              <div style={{ width: 42, height: 42, borderRadius: 11, display: "flex", alignItems: "center", justifyContent: "center", background: "var(--gold-soft)", fontSize: 20, flex: "0 0 auto" }}>{awardIcon(a.category)}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{titleOf(a)}</div>
+                <div className="muted">
+                  {winnerOf(a, teams)}{a.prize ? ` · ${a.prize}` : ""}
+                </div>
               </div>
-            );
-          })}
-          {editions.length === 0 && <div className="muted">Sin palmarés cargado.</div>}
+              {a.sponsor && <span className="chip" style={{ background: "var(--surface-2)", color: "var(--ink-soft)", border: "1px solid var(--line)" }}>🎁 {a.sponsor}</span>}
+            </div>
+          ))}
         </div>
       )}
+
+      <SponsorsBlock sponsors={sponsors} />
+
+      <div className="sec-title"><h2>Palmarés</h2></div>
+      <div className="card pad">
+        {pastEds.length === 0 && <div className="muted">Sin ediciones anteriores.</div>}
+        {pastEds.map((edId) => {
+          const items = byEdition.get(edId)!;
+          const t = items.find((i) => i.category === "teams");
+          const s = items.find((i) => i.category === "stableford");
+          const year = edId.replace("ed-", "");
+          return (
+            <div key={edId} style={{ padding: "6px 0 14px", borderBottom: "1px solid var(--line-soft)" }}>
+              <div style={{ fontFamily: "var(--serif)", fontWeight: 700, fontSize: 16 }}>{year}</div>
+              {t && <div className="muted" style={{ marginTop: 2 }}>Equipos · <b style={{ color: "var(--ink)" }}>{t.note ?? winnerOf(t, teams)}</b></div>}
+              {s && <div className="muted">Stableford · <b style={{ color: "var(--ink)" }}>{s.playerName ? displayName(s.playerName) : s.note}</b> 🧥</div>}
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
+export function SponsorsBlock({ sponsors }: { sponsors: Sponsor[] }) {
+  if (sponsors.length === 0) return null;
+  return (
+    <>
+      <div className="sec-title"><h2>Sponsors</h2></div>
+      <div className="sponsors-grid">
+        {sponsors.map((s) => {
+          const inner = s.logo_url
+            ? <img src={s.logo_url} alt={s.name} />
+            : <span className="sp-name">{s.name}</span>;
+          return s.website ? (
+            <a className="sponsor" key={s.id} href={s.website} target="_blank" rel="noopener" title={s.name}>{inner}</a>
+          ) : (
+            <div className="sponsor" key={s.id} title={s.name}>{inner}</div>
+          );
+        })}
+      </div>
     </>
   );
 }
@@ -77,7 +123,6 @@ export function Viaje() {
       <div className="card pad">
         <Info k="Destino" v={edition?.location ?? "—"} />
         <Info k="Edición" v={edition?.name ?? "—"} />
-        <Info k="Jugadores" v="16 · 2 equipos" />
       </div>
 
       <div className="sec-title"><h2>Las canchas</h2></div>
@@ -104,5 +149,3 @@ function Info({ k, v }: { k: string; v: string }) {
     </div>
   );
 }
-
-

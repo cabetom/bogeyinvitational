@@ -13,7 +13,7 @@ import { Premios, Viaje } from "./screens/Secciones";
 import { Presupuesto } from "./screens/Presupuesto";
 import { Camionetas } from "./screens/Camionetas";
 import { Admin } from "./screens/Admin";
-import { Spinner } from "./ui/misc";
+import { Spinner, displayName } from "./ui/misc";
 
 export type Screen =
   | "inicio" | "ranking" | "cargar" | "equipos" | "more"
@@ -49,6 +49,32 @@ function ThemeToggle() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
       )}
     </button>
+  );
+}
+
+function TickerBanner() {
+  const { teams, teamScore, ranking, edition } = useAppData();
+  const pato = teams.find((t) => t.name === "Pato");
+  const tano = teams.find((t) => t.name === "Tano");
+  const p = pato ? teamScore[pato.id] ?? 0 : 0;
+  const t = tano ? teamScore[tano.id] ?? 0 : 0;
+
+  const items: string[] = [];
+  items.push(`⛳  PATO  ${p} – ${t}  TANO`);
+  items.push(p === t ? "Van empatados" : `Lidera el ${p > t ? "Pato" : "Tano"}`);
+  ranking.slice(0, 5).forEach((r, i) => {
+    items.push(`${i === 0 ? "🧥 " : `${i + 1}. `}${displayName(r.player.full_name)} · ${r.points}`);
+  });
+  if (edition) items.push(`Edición ${edition.year}`);
+  if (items.length < 3) return null;
+
+  const loop = [...items, ...items];
+  return (
+    <div className="ticker" aria-hidden="true">
+      <div className="ticker-track">
+        {loop.map((it, i) => <span className="it" key={i}>{it}</span>)}
+      </div>
+    </div>
   );
 }
 
@@ -91,6 +117,8 @@ function Shell() {
             </select>
           </div>
         </header>
+
+        <TickerBanner />
 
         <main className="scroll">
           <div className="screen" key={screen}>{body[screen]}</div>

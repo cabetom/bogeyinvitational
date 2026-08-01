@@ -190,9 +190,10 @@ a{color:inherit}
 @media (min-width:900px){
   body{padding:0}
   .app{max-width:none;width:100%;min-height:100dvh;height:100dvh;overflow:hidden;
-    display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto 1fr;
-    grid-template-areas:"head head" "nav main"}
+    display:grid;grid-template-columns:250px 1fr;grid-template-rows:auto auto 1fr;
+    grid-template-areas:"head head" "tick tick" "nav main"}
   .appbar{grid-area:head;position:static;padding:16px 30px}
+  .ticker{grid-area:tick}
   .appbar .wordmark{width:150px;height:32px}
 
   .scroll{grid-area:main;padding:28px 40px 48px;max-width:1120px;width:100%;margin:0 auto}
@@ -277,3 +278,21 @@ a{color:inherit}
 .pick-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
 .pick{font-size:12px;font-weight:600;padding:7px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink-soft);cursor:pointer}
 .pick.on{background:var(--pine);color:#F2EFE2;border-color:var(--pine)}
+
+/* ---------- ticker banner ---------- */
+.ticker{background:var(--pine-deep);color:#EFE8D6;overflow:hidden;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.08);flex:0 0 auto}
+.ticker-track{display:inline-flex;animation:tick 32s linear infinite;will-change:transform}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker .it{padding:6px 22px;font-size:11.5px;font-weight:600;letter-spacing:.02em;border-right:1px solid rgba(255,255,255,.09)}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.ticker-track{animation:none}}
+
+/* admin tabs: permitir scroll horizontal si no entran */
+.adm-tabs{overflow-x:auto}
+.adm-tabs button{flex:0 0 auto;min-width:84px}
+
+/* ---------- sponsors ---------- */
+.sponsors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px}
+.sponsor{display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:66px;box-shadow:var(--shadow);text-decoration:none}
+.sponsor img{max-width:100%;max-height:40px;object-fit:contain}
+.sponsor .sp-name{font-family:var(--serif);font-weight:700;font-size:13px;color:var(--ink);text-align:center}

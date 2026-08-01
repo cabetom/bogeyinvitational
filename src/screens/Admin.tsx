@@ -8,10 +8,12 @@ import { addPlayerToEdition, removeFromEdition, setPlayerAdmin } from "../lib/ad
 import {
   addFixture, deleteFixture, getCourseHoles, saveCourseHoles, addCourse, type HoleRow,
 } from "../lib/adminSetup";
+import { getAwards, addAward, deleteAward, AWARD_CATS, awardIcon, type AwardRow } from "../lib/awards";
+import { getSponsors, addSponsor, deleteSponsor, TIERS, type Sponsor } from "../lib/sponsors";
 import type { Course, Fixture, Modality, Player, Team } from "../lib/types";
 import { Avatar, displayName, Spinner } from "../ui/misc";
 
-type Tab = "jugadores" | "fechas" | "canchas";
+type Tab = "jugadores" | "fechas" | "canchas" | "premios" | "sponsors";
 
 export function Admin() {
   const nav = useNav();
@@ -35,10 +37,14 @@ export function Admin() {
         <button className={tab === "jugadores" ? "on" : ""} onClick={() => setTab("jugadores")}>Jugadores</button>
         <button className={tab === "fechas" ? "on" : ""} onClick={() => setTab("fechas")}>Fechas</button>
         <button className={tab === "canchas" ? "on" : ""} onClick={() => setTab("canchas")}>Canchas</button>
+        <button className={tab === "premios" ? "on" : ""} onClick={() => setTab("premios")}>Premios</button>
+        <button className={tab === "sponsors" ? "on" : ""} onClick={() => setTab("sponsors")}>Sponsors</button>
       </div>
       {tab === "jugadores" && <PlayersPanel />}
       {tab === "fechas" && <FixturesPanel />}
       {tab === "canchas" && <CoursesPanel />}
+      {tab === "premios" && <AwardsPanel />}
+      {tab === "sponsors" && <SponsorsPanel />}
     </>
   );
 }
@@ -266,6 +272,138 @@ function CoursesPanel() {
       )}
       <button className="btn-primary" disabled={busy} onClick={save}>{busy ? "Guardando…" : "Guardar pares"}</button>
       {msg && <p style={{ textAlign: "center", marginTop: 10, fontWeight: 600, color: "var(--pine)" }}>{msg}</p>}
+    </>
+  );
+}
+
+/* ---------------- Premios ---------------- */
+function AwardsPanel() {
+  const { edition, teams } = useAppData();
+  const [awards, setAwards] = useState<AwardRow[] | null>(null);
+  const [roster, setRoster] = useState<Player[]>([]);
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("chaqueta");
+  const [winner, setWinner] = useState("");
+  const [prize, setPrize] = useState("");
+  const [sponsor, setSponsor] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() { if (!edition) return; setAwards(await getAwards(edition.id)); }
+  useEffect(() => { refresh(); if (edition) getRoster(edition.id).then((r) => setRoster(r.map((x: any) => x.players))); /* eslint-disable-next-line */ }, [edition]);
+
+  const nameOf = (a: AwardRow) => a.playerName ? displayName(a.playerName) : (a.team_id ? `Equipo ${teams.find((t) => t.id === a.team_id)?.name ?? ""}` : "A definir");
+
+  async function onAdd() {
+    if (!edition || !title.trim()) return;
+    setBusy(true);
+    try {
+      let playerId: string | null = null, teamId: string | null = null;
+      if (winner.startsWith("team:")) teamId = winner.slice(5);
+      else if (winner.startsWith("player:")) playerId = winner.slice(7);
+      await addAward(edition.id, { title, category, playerId, teamId, prize: prize || null, sponsor: sponsor || null });
+      setTitle(""); setPrize(""); setSponsor(""); setWinner("");
+      await refresh();
+    } finally { setBusy(false); }
+  }
+  async function onDel(id: string) { if (!confirm("¿Borrar premio?")) return; await deleteAward(id); await refresh(); }
+
+  return (
+    <>
+      <div className="card pad">
+        <label className="form-lbl" style={{ marginTop: 0 }}>Nombre del premio</label>
+        <input className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: La Chaqueta / El Farolero / Longest Drive" />
+        <label className="form-lbl">Tipo (ícono)</label>
+        <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
+          {AWARD_CATS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+        </select>
+        <label className="form-lbl">Ganador (opcional)</label>
+        <select className="field" value={winner} onChange={(e) => setWinner(e.target.value)}>
+          <option value="">— a definir —</option>
+          {teams.map((t) => <option key={t.id} value={`team:${t.id}`}>Equipo {t.name}</option>)}
+          {roster.map((p) => <option key={p.id} value={`player:${p.id}`}>{displayName(p.full_name)}</option>)}
+        </select>
+        <label className="form-lbl">¿Qué se lleva? (opcional)</label>
+        <input className="field" value={prize} onChange={(e) => setPrize(e.target.value)} placeholder="Ej: Chaqueta verde / Docena de Pro V1" />
+        <label className="form-lbl">Sponsor del premio (opcional)</label>
+        <input className="field" value={sponsor} onChange={(e) => setSponsor(e.target.value)} placeholder="Ej: Golf House" />
+        <button className="btn-primary" disabled={busy || !title.trim()} onClick={onAdd}>{busy ? "Guardando…" : "Agregar premio"}</button>
+      </div>
+
+      <div className="sec-title"><h2>Premios de {edition?.year}</h2></div>
+      {!awards ? <Spinner /> : (
+        <div className="card pad">
+          {awards.length === 0 && <div className="muted">Sin premios cargados.</div>}
+          {awards.map((a) => (
+            <div key={a.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 2px", borderBottom: "1px solid var(--line-soft)" }}>
+              <span style={{ fontSize: 20 }}>{awardIcon(a.category)}</span>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{a.title ?? "Premio"}</div>
+                <div className="muted" style={{ fontSize: 11.5 }}>{nameOf(a)}{a.prize ? ` · ${a.prize}` : ""}{a.sponsor ? ` · 🎁 ${a.sponsor}` : ""}</div>
+              </div>
+              <button className="mini-btn danger" onClick={() => onDel(a.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ---------------- Sponsors ---------------- */
+function SponsorsPanel() {
+  const { edition } = useAppData();
+  const [sponsors, setSponsors] = useState<Sponsor[] | null>(null);
+  const [name, setName] = useState("");
+  const [logo, setLogo] = useState("");
+  const [site, setSite] = useState("");
+  const [tier, setTier] = useState("oficial");
+  const [busy, setBusy] = useState(false);
+
+  async function refresh() { if (!edition) return; setSponsors(await getSponsors(edition.id)); }
+  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [edition]);
+
+  async function onAdd() {
+    if (!edition || !name.trim()) return;
+    setBusy(true);
+    try { await addSponsor(edition.id, { name, logoUrl: logo || null, website: site || null, tier }); setName(""); setLogo(""); setSite(""); await refresh(); }
+    finally { setBusy(false); }
+  }
+  async function onDel(id: string) { if (!confirm("¿Borrar sponsor?")) return; await deleteSponsor(id); await refresh(); }
+
+  return (
+    <>
+      <div className="card pad">
+        <label className="form-lbl" style={{ marginTop: 0 }}>Nombre del sponsor</label>
+        <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Golf House" />
+        <label className="form-lbl">Logo (URL de imagen, opcional)</label>
+        <input className="field" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://.../logo.png" />
+        <label className="form-lbl">Sitio web (opcional)</label>
+        <input className="field" value={site} onChange={(e) => setSite(e.target.value)} placeholder="https://..." />
+        <label className="form-lbl">Nivel</label>
+        <select className="field" value={tier} onChange={(e) => setTier(e.target.value)}>
+          {TIERS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}
+        </select>
+        <button className="btn-primary" disabled={busy || !name.trim()} onClick={onAdd}>{busy ? "Guardando…" : "Agregar sponsor"}</button>
+      </div>
+
+      <div className="sec-title"><h2>Sponsors de {edition?.year}</h2></div>
+      {!sponsors ? <Spinner /> : (
+        <div className="card pad">
+          {sponsors.length === 0 && <div className="muted">Sin sponsors cargados.</div>}
+          {sponsors.map((s) => (
+            <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "10px 2px", borderBottom: "1px solid var(--line-soft)" }}>
+              {s.logo_url
+                ? <img src={s.logo_url} alt={s.name} style={{ width: 40, height: 40, objectFit: "contain", borderRadius: 8, background: "var(--surface-2)", border: "1px solid var(--line-soft)" }} />
+                : <span style={{ fontSize: 18 }}>🏷️</span>}
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
+                <div className="muted" style={{ fontSize: 11.5 }}>{s.tier ?? ""}</div>
+              </div>
+              <button className="mini-btn danger" onClick={() => onDel(s.id)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
