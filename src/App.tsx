@@ -84,7 +84,7 @@ function Shell() {
             >
               {editions.map((ed) => (
                 <option key={ed.id} value={ed.id}>
-                  Pato vs Tano · {ed.year}
+                  Edición {ed.year}
                 </option>
               ))}
             </select>
