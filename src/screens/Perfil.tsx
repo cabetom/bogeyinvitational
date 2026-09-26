@@ -6,10 +6,14 @@ import { getPlayerHistory, type HistoryRow } from "../lib/queries_matches";
 import { uploadAvatar } from "../lib/storage";
 import { requestNotify, notifyPermission } from "../lib/notify";
 import { Avatar, displayName, shortName, Spinner } from "../ui/misc";
+import { isMatriculaUser, matriculaFromEmail } from "../lib/auth";
+import { ChangePassword } from "./Login";
 
 export function Perfil() {
   const nav = useNav();
-  const { player, signOut, refreshPlayer } = useAuth();
+  const { session, player, signOut, refreshPlayer } = useAuth();
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pwMsg, setPwMsg] = useState<string | null>(null);
   const { edition, ranking, records, reload } = useAppData();
   const [history, setHistory] = useState<HistoryRow[] | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -100,6 +104,17 @@ export function Perfil() {
       <button className="btn-ghost" onClick={() => fileRef.current?.click()} disabled={uploading}>
         {uploading ? "Subiendo…" : "📷 Cambiar foto de perfil"}
       </button>
+      {isMatriculaUser(session?.user) && (
+        <>
+          <button className="btn-ghost" onClick={() => { setPwOpen(!pwOpen); setPwMsg(null); }}>🔑 Cambiar contraseña</button>
+          {pwOpen && (
+            <div className="card pad pw-card">
+              <ChangePassword forced={false} matricula={matriculaFromEmail(session?.user.email)} onDone={() => { setPwOpen(false); setPwMsg("✓ Contraseña actualizada"); }} />
+            </div>
+          )}
+          {pwMsg && <p style={{ textAlign: "center", marginTop: 8, fontWeight: 600, color: "var(--pine)" }}>{pwMsg}</p>}
+        </>
+      )}
       <button className="btn-ghost" onClick={signOut}>Cerrar sesión</button>
     </>
   );

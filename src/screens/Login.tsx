@@ -1,9 +1,27 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { supabase } from "../lib/supabase";
+import { changePassword, signInWithMatricula } from "../lib/auth";
+import { useAuth } from "../auth/AuthProvider";
 
 export function Login() {
+  const [matricula, setMatricula] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!matricula.trim() || !password) return;
+    setErr(null);
+    setBusy(true);
+    try {
+      await signInWithMatricula(matricula, password);
+      // onAuthStateChange se encarga del resto.
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo iniciar sesión");
+      setBusy(false);
+    }
+  }
 
   async function signInGoogle() {
     setErr(null);
@@ -27,7 +45,34 @@ export function Login() {
   return (
     <div className="login">
       <img className="logo-orig" src="/logo-original.png" alt="Bogey Invitational" />
-      <p>Entrá con tu cuenta de Google para cargar tus tarjetas y ver el torneo.</p>
+      <p>Entrá con tu matrícula para cargar tus tarjetas y ver el torneo.</p>
+      <form className="login-form" onSubmit={onSubmit}>
+        <input
+          className="login-field"
+          inputMode="numeric"
+          autoComplete="username"
+          placeholder="Matrícula"
+          value={matricula}
+          onChange={(e) => setMatricula(e.target.value.replace(/\D/g, ""))}
+        />
+        <input
+          className="login-field"
+          type="password"
+          autoComplete="current-password"
+          placeholder="Contraseña"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        <button className="btn-login" type="submit" disabled={busy || !matricula || !password}>
+          {busy ? "Entrando…" : "Entrar"}
+        </button>
+      </form>
+      {err && <div className="err">{err}</div>}
+      <p style={{ fontSize: 11.5, color: "#7E8F7E", marginTop: 12 }}>
+        La primera vez, la contraseña es tu matrícula.
+      </p>
+
+      <div className="login-or"><span>o</span></div>
       <button className="btn-google" disabled={busy} onClick={signInGoogle}>
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -35,12 +80,56 @@ export function Login() {
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        {busy ? "Redirigiendo…" : "Entrar con Google"}
+        Entrar con Google
       </button>
-      {err && <div className="err">{err}</div>}
-      <p style={{ fontSize: 11.5, color: "#9DB29A", marginTop: 18 }}>
-        Usá el mismo Gmail con el que estás cargado en el torneo.
+      <p style={{ fontSize: 11.5, color: "#9DB29A", marginTop: 10 }}>
+        Con Google, usá el mismo Gmail con el que estás cargado en el torneo.
       </p>
+    </div>
+  );
+}
+
+/** Formulario de cambio de contraseña. `forced` = primer login (no se puede saltear). */
+export function ChangePassword({ forced, matricula, onDone }: { forced: boolean; matricula?: string | null; onDone?: () => void }) {
+  const { signOut } = useAuth();
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setErr(null);
+    if (pw.length < 6) return setErr("Mínimo 6 caracteres");
+    if (matricula && pw === matricula) return setErr("No puede ser tu matrícula");
+    if (pw !== pw2) return setErr("Las contraseñas no coinciden");
+    setBusy(true);
+    try {
+      await changePassword(pw);
+      onDone?.();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "No se pudo cambiar la contraseña");
+      setBusy(false);
+    }
+  }
+
+  const form = (
+    <form className="login-form" onSubmit={onSubmit}>
+      <input className="login-field" type="password" autoComplete="new-password" placeholder="Contraseña nueva" value={pw} onChange={(e) => setPw(e.target.value)} />
+      <input className="login-field" type="password" autoComplete="new-password" placeholder="Repetila" value={pw2} onChange={(e) => setPw2(e.target.value)} />
+      <button className="btn-login" type="submit" disabled={busy || !pw || !pw2}>{busy ? "Guardando…" : "Guardar contraseña"}</button>
+      {err && <div className="err">{err}</div>}
+    </form>
+  );
+
+  if (!forced) return form;
+
+  return (
+    <div className="login">
+      <img className="logo-orig" src="/logo-original.png" alt="Bogey Invitational" />
+      <p><b>¡Bienvenido!</b> Antes de seguir, elegí una contraseña nueva (mínimo 6 caracteres).</p>
+      {form}
+      <button className="login-link" onClick={signOut}>Salir</button>
     </div>
   );
 }

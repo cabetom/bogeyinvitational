@@ -175,6 +175,19 @@ a{color:inherit}
 .btn-google{margin-top:24px;display:inline-flex;align-items:center;justify-content:center;gap:11px;width:100%;max-width:320px;background:#fff;color:#1f2328;border:1px solid #E3DBC7;border-radius:13px;padding:14px 18px;font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;box-shadow:0 8px 22px -12px rgba(18,53,36,.4)}
 .btn-google:disabled{opacity:.7}
 .btn-google:active{transform:translateY(1px)}
+.login-form{width:100%;max-width:320px;margin-top:20px;display:flex;flex-direction:column;gap:10px}
+.login-field{width:100%;background:#fff;border:1px solid #E3DBC7;border-radius:13px;padding:14px 16px;font:inherit;font-size:15px;color:#16281C;text-align:center}
+.login-field:focus{outline:2px solid #BE9433;outline-offset:1px}
+.btn-login{width:100%;background:#1A5336;color:#F2EFE2;border:0;border-radius:13px;padding:15px;font:inherit;font-size:14.5px;font-weight:700;letter-spacing:.02em;cursor:pointer;box-shadow:0 8px 22px -12px rgba(18,53,36,.55)}
+.btn-login:disabled{opacity:.6}
+.login-or{width:100%;max-width:320px;display:flex;align-items:center;gap:10px;margin-top:22px;color:#9DB29A;font-size:12px}
+.login-or::before,.login-or::after{content:"";flex:1;height:1px;background:#DCD2BA}
+.login-or + .btn-google{margin-top:14px}
+.pw-card{margin-top:10px}
+.pw-card .login-form{max-width:none;margin-top:0}
+.pw-card .login-field{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.pw-card .err{color:#A6533A;font-size:12.5px;text-align:center}
+.login-link{margin-top:16px;background:none;border:0;color:#5A6A5B;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
 
 /* ---------- theme toggle (appbar) ---------- */
 .theme-btn{margin-left:auto;flex:0 0 auto;width:34px;height:34px;border-radius:999px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#EFE8D6;display:flex;align-items:center;justify-content:center;cursor:pointer}

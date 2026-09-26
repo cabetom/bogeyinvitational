@@ -7,9 +7,11 @@ import type { Course, Team } from "../lib/types";
 import { displayName, Spinner } from "../ui/misc";
 
 // Sponsors del torneo (fijos). Para sumar más, agregar el logo en public/sponsors/ y una línea acá.
-const SPONSORS = [
+const SPONSORS: { name: string; logo: string; website?: string; bg?: string }[] = [
   { name: "Ánimas Wealth Management", logo: "/sponsors/animas.png", website: "https://animas.com.ar" },
   { name: "Easy Golf", logo: "/sponsors/easygolf.webp", website: "https://easygolf.com.ar" },
+  { name: "Inmobiliaria Del Cerro", logo: "/sponsors/inmobiliaria-del-cerro.png" },
+  { name: "Relaw", logo: "/sponsors/relaw.png", bg: "#CBF23F" },
 ];
 
 function Back() {
@@ -100,7 +102,7 @@ export function SponsorsBlock() {
       <div className="sec-title"><h2>Sponsors</h2></div>
       <div className="sponsors-grid">
         {SPONSORS.map((s) => (
-          <a className="sponsor" key={s.name} title={s.name} href={s.website} target="_blank" rel="noopener">
+          <a className="sponsor" key={s.name} title={s.name} href={s.website} target="_blank" rel="noopener" style={s.bg ? { background: s.bg } : undefined}>
             <img src={s.logo} alt={s.name} />
           </a>
         ))}

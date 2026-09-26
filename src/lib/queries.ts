@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { matriculaFromEmail } from "./auth";
 import type {
   Edition,
   Player,
@@ -200,7 +201,13 @@ export async function getMatchRecords(editionId: string): Promise<MatchRecord[]>
 }
 
 export async function getMyPlayer(authUserId: string, email: string | null): Promise<Player | null> {
-  // Primero por auth_user_id; si no, por email (y lo linkeamos).
+  // Login por matrícula: el email interno identifica al jugador (no se pisa el auth_user_id de Google).
+  const matricula = matriculaFromEmail(email);
+  if (matricula) {
+    const { data } = await supabase.from("players").select("*").eq("matricula", matricula).maybeSingle();
+    return (data as Player) ?? null;
+  }
+  // Google: primero por auth_user_id; si no, por email (y lo linkeamos).
   let { data } = await supabase.from("players").select("*").eq("auth_user_id", authUserId).maybeSingle();
   if (data) return data as Player;
   if (email) {

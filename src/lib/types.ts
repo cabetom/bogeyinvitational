@@ -20,6 +20,7 @@ export interface Player {
   avatar_url: string | null;
   is_admin: boolean;
   auth_user_id: string | null;
+  matricula: string | null;
 }
 
 export interface Team {

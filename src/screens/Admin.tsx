@@ -5,6 +5,7 @@ import { useNav } from "../App";
 import { getRoster } from "../lib/queries";
 import { getCourses, getFixtures } from "../lib/queries_matches";
 import { addPlayerToEdition, removeFromEdition, setPlayerAdmin } from "../lib/admin";
+import { adminSetPlayerLogin } from "../lib/auth";
 import {
   addFixture, deleteFixture, getCourseHoles, saveCourseHoles, addCourse, setEditionTotalPoints, type HoleRow,
 } from "../lib/adminSetup";
@@ -59,6 +60,7 @@ function PlayersPanel() {
   const [msg, setMsg] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [matricula, setMatricula] = useState("");
   const [teamId, setTeamId] = useState("");
 
   async function refresh() {
@@ -76,13 +78,27 @@ function PlayersPanel() {
     if (!edition || !name.trim()) return;
     setBusy(true); setMsg(null);
     try {
-      await addPlayerToEdition(edition.id, name.trim(), email.trim() || null, teamId || null);
-      setName(""); setEmail(""); setMsg("✓ Jugador agregado"); await refresh(); reload();
+      const playerId = await addPlayerToEdition(edition.id, name.trim(), email.trim() || null, teamId || null);
+      if (matricula.trim()) await adminSetPlayerLogin(playerId, matricula);
+      setName(""); setEmail(""); setMatricula("");
+      setMsg(matricula.trim() ? "✓ Jugador agregado — entra con su matrícula (usuario y contraseña)" : "✓ Jugador agregado"); await refresh(); reload();
     } catch (e) { setMsg(e instanceof Error ? e.message : "No se pudo agregar"); } finally { setBusy(false); }
   }
   async function onRemove(r: RosterRow) {
     if (!edition || !confirm(`¿Sacar a ${displayName(r.players.full_name)} del torneo ${edition.year}?`)) return;
     await removeFromEdition(edition.id, r.player_id); await refresh(); reload();
+  }
+  async function onMatricula(r: RosterRow) {
+    const m = prompt(`Matrícula de ${displayName(r.players.full_name)}`, r.players.matricula ?? "");
+    if (m == null || !m.trim() || m.trim() === r.players.matricula) return;
+    try { await adminSetPlayerLogin(r.player_id, m); await refresh(); }
+    catch (e) { alert(e instanceof Error ? e.message : "No se pudo guardar la matrícula"); }
+  }
+  async function onResetPassword(r: RosterRow) {
+    if (!r.players.matricula) return;
+    if (!confirm(`¿Resetear la contraseña de ${displayName(r.players.full_name)}? Va a volver a ser su matrícula (${r.players.matricula}) y la tendrá que cambiar al entrar.`)) return;
+    try { await adminSetPlayerLogin(r.player_id, r.players.matricula, true); alert("✓ Contraseña reseteada"); }
+    catch (e) { alert(e instanceof Error ? e.message : "No se pudo resetear"); }
   }
   async function onToggleAdmin(r: RosterRow) {
     await setPlayerAdmin(r.player_id, !r.players.is_admin); await refresh();
@@ -93,7 +109,9 @@ function PlayersPanel() {
       <div className="card pad">
         <label className="form-lbl" style={{ marginTop: 0 }}>Nombre y apellido</label>
         <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Juan Pérez" />
-        <label className="form-lbl">Email (Gmail para el login)</label>
+        <label className="form-lbl">Matrícula (usuario y contraseña inicial)</label>
+        <input className="field tabular" inputMode="numeric" value={matricula} onChange={(e) => setMatricula(e.target.value.replace(/D/g, ""))} placeholder="Ej: 102587" />
+        <label className="form-lbl">Email (Gmail, opcional — para entrar con Google)</label>
         <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jugador@gmail.com" />
         <label className="form-lbl">Equipo</label>
         <select className="field" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
@@ -114,9 +132,11 @@ function PlayersPanel() {
                   {displayName(r.players.full_name)}{r.players.is_admin && <span className="chip admin">🛡️</span>}
                 </div>
                 <div className="muted" style={{ fontSize: 11.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {r.players.email || "sin email — no puede entrar"} · {teamName(r.team_id)}
+                  {r.players.matricula ? `Mat. ${r.players.matricula}` : "sin matrícula"}{r.players.email ? ` · ${r.players.email}` : ""} · {teamName(r.team_id)}
                 </div>
               </div>
+              <button className="mini-btn" onClick={() => onMatricula(r)}>{r.players.matricula ? "Matrícula" : "+ Matrícula"}</button>
+              {r.players.matricula && <button className="mini-btn" onClick={() => onResetPassword(r)} title="Resetear contraseña a la matrícula">🔑</button>}
               <button className="mini-btn" onClick={() => onToggleAdmin(r)}>{r.players.is_admin ? "Quitar admin" : "Hacer admin"}</button>
               <button className="mini-btn danger" onClick={() => onRemove(r)}>✕</button>
             </div>

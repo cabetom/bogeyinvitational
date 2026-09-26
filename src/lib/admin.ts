@@ -1,12 +1,12 @@
 import { supabase } from "./supabase";
 
-/** Agrega un jugador al torneo (autoriza su login por email). Reusa el jugador si el email ya existe. */
+/** Agrega un jugador al torneo y devuelve su id. Reusa el jugador si el email ya existe. */
 export async function addPlayerToEdition(
   editionId: string,
   fullName: string,
   email: string | null,
   teamId: string | null
-): Promise<void> {
+): Promise<string> {
   let playerId: string | null = null;
 
   if (email) {
@@ -28,6 +28,7 @@ export async function addPlayerToEdition(
     .from("edition_players")
     .upsert({ edition_id: editionId, player_id: playerId, team_id: teamId }, { onConflict: "edition_id,player_id" });
   if (error) throw error;
+  return playerId;
 }
 
 /** Saca un jugador del torneo de esta edición (no borra su historial). */

@@ -4,7 +4,8 @@ import { AppDataProvider, useAppData } from "./data/AppData";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { notify } from "./lib/notify";
 import { installAvailable, isIOS, isStandalone, onInstallChange, promptInstall } from "./lib/pwa";
-import { Login } from "./screens/Login";
+import { ChangePassword, Login } from "./screens/Login";
+import { matriculaFromEmail, mustChangePassword } from "./lib/auth";
 import { Home } from "./screens/Home";
 import { Ranking } from "./screens/Ranking";
 import { Equipos } from "./screens/Equipos";
@@ -210,6 +211,9 @@ export function App() {
   }
   if (loading) return <div className="app"><Spinner /></div>;
   if (!session) return <Login />;
+  if (mustChangePassword(session.user)) {
+    return <ChangePassword forced matricula={matriculaFromEmail(session.user.email)} />;
+  }
 
   return (
     <AppDataProvider>
