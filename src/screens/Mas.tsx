@@ -39,11 +39,11 @@ export function Mas() {
   const { player } = useAuth();
 
   const rows: { icon: string; title: string; sub: string; to: Parameters<typeof nav>[0] }[] = [
-    { icon: "🔴", title: "Partidos en vivo", sub: "Seguí los fourball hoyo a hoyo", to: "live" },
+    { icon: "🔴", title: "Partidos en vivo", sub: "Cómo van los partidos · cargá el tuyo", to: "live" },
     { icon: "🏆", title: "Premios", sub: "Palmarés y premios de la edición", to: "premios" },
     { icon: "📍", title: "El viaje", sub: "Canchas, fechas y logística", to: "viaje" },
     { icon: "🚐", title: "Camionetas", sub: "Quién va con quién · ida y vuelta", to: "vans" },
-    { icon: "💸", title: "Presupuesto y gastos", sub: "Estimado y división de cuentas", to: "presu" },
+    { icon: "💸", title: "Gastos", sub: "Quién pagó qué y cómo dividir la cuenta", to: "presu" },
     { icon: "👤", title: "Mi perfil", sub: "Tus tarjetas, récord e historial", to: "perfil" },
   ];
 
@@ -64,7 +64,7 @@ export function Mas() {
         {player?.is_admin && (
           <button className="mrow" onClick={() => nav("admin")}>
             <div className="mi">🛡️</div>
-            <div><div className="mt">Gestión de jugadores <span className="chip admin" style={{ marginLeft: 4 }}>Admin</span></div><div className="ms">Agregar o sacar jugadores del torneo</div></div>
+            <div><div className="mt">Gestión del torneo <span className="chip admin" style={{ marginLeft: 4 }}>Admin</span></div><div className="ms">Jugadores y hándicaps, partidos, fechas, canchas y premios</div></div>
             <span className="go">›</span>
           </button>
         )}

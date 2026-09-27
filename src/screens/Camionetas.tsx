@@ -27,12 +27,12 @@ export function Camionetas() {
   useEffect(() => {
     if (!edition) return;
     getRoster(edition.id).then((r) => setRoster(r.map((x: any) => x.players)));
-  }, [edition]);
+  }, [edition?.id]);
 
   const refresh = useCallback(() => {
     if (!edition) return;
     getAssignments(edition.id, dir).then(setVans).catch(() => setVans([]));
-  }, [edition, dir]);
+  }, [edition?.id, dir]);
 
   useEffect(() => { setVans(null); refresh(); }, [refresh]);
 

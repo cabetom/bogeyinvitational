@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { useNav } from "../App";
 import { useAppData } from "../data/AppData";
-import { getCourses } from "../lib/queries_matches";
+import { getCourses, getFixtures } from "../lib/queries_matches";
+import { fmtDay, fmtTee } from "../lib/dates";
 import { getAwards, getAllAwards, awardIcon, type AwardRow } from "../lib/awards";
-import type { Course, Team } from "../lib/types";
+import type { Course, Fixture, Team } from "../lib/types";
 import { displayName, Spinner } from "../ui/misc";
 
 // Sponsors del torneo (fijos). Para sumar más, agregar el logo en public/sponsors/ y una línea acá.
-const SPONSORS: { name: string; logo: string; website?: string; bg?: string }[] = [
-  { name: "Ánimas Wealth Management", logo: "/sponsors/animas.png", website: "https://animas.com.ar" },
-  { name: "Easy Golf", logo: "/sponsors/easygolf.webp", website: "https://easygolf.com.ar" },
+const SPONSORS: { name: string; logo: string; bg?: string }[] = [
+  { name: "Ánimas Wealth Management", logo: "/sponsors/animas.png" },
+  { name: "Easy Golf", logo: "/sponsors/easygolf.webp" },
   { name: "Inmobiliaria Del Cerro", logo: "/sponsors/inmobiliaria-del-cerro.png" },
   { name: "Relaw", logo: "/sponsors/relaw.png", bg: "#CBF23F" },
 ];
@@ -39,7 +40,7 @@ export function Premios() {
     if (!edition) return;
     getAwards(edition.id).then(setAwards).catch(() => setAwards([]));
     getAllAwards().then(setAll).catch(() => setAll([]));
-  }, [edition]);
+  }, [edition?.id]);
 
   const byEdition = new Map<string, AwardRow[]>();
   for (const a of all) {
@@ -102,9 +103,9 @@ export function SponsorsBlock() {
       <div className="sec-title"><h2>Sponsors</h2></div>
       <div className="sponsors-grid">
         {SPONSORS.map((s) => (
-          <a className="sponsor" key={s.name} title={s.name} href={s.website} target="_blank" rel="noopener" style={s.bg ? { background: s.bg } : undefined}>
+          <div className="sponsor" key={s.name} title={s.name} style={s.bg ? { background: s.bg } : undefined}>
             <img src={s.logo} alt={s.name} />
-          </a>
+          </div>
         ))}
       </div>
     </>
@@ -113,8 +114,14 @@ export function SponsorsBlock() {
 
 export function Viaje() {
   const { edition } = useAppData();
-  const [courses, setCourses] = useState<Course[] | null>(null);
-  useEffect(() => { getCourses().then(setCourses).catch(() => setCourses([])); }, []);
+  const [days, setDays] = useState<(Fixture & { courseName: string | null })[] | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  useEffect(() => {
+    if (!edition) return;
+    getFixtures(edition.id).then(setDays).catch(() => setDays([]));
+    getCourses().then(setCourses).catch(() => {});
+  }, [edition?.id]);
+  const courseOf = (id: string | null) => courses.find((c) => c.id === id);
 
   return (
     <>
@@ -123,19 +130,31 @@ export function Viaje() {
       <div className="card pad">
         <Info k="Destino" v={edition?.location ?? "—"} />
         <Info k="Edición" v={edition?.name ?? "—"} />
+        {edition?.start_date && <Info k="Fechas" v={`${fmtDay(edition.start_date)} al ${fmtDay(edition.end_date)}`} />}
       </div>
 
-      <div className="sec-title"><h2>Las canchas</h2></div>
-      {!courses ? <Spinner /> : (
+      <div className="sec-title"><h2>Día por día</h2></div>
+      {!days ? <Spinner /> : days.length === 0 ? <div className="muted" style={{ padding: "0 4px" }}>Sin fechas cargadas.</div> : (
         <div className="card">
-          {courses.map((c) => (
-            <a key={c.id} href={c.location_url ?? "#"} target="_blank" rel="noopener"
-              style={{ display: "flex", gap: 12, alignItems: "center", padding: 13, borderBottom: "1px solid var(--line-soft)", textDecoration: "none", color: "inherit" }}>
-              <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--pine)", color: "#F2EFE2", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontWeight: 700, fontSize: 13, flex: "0 0 auto" }}>{c.id}</div>
-              <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{c.name}</div><div className="muted">Par {c.par_total}</div></div>
-              <span style={{ marginLeft: "auto", color: "var(--pine-soft)" }}>›</span>
-            </a>
-          ))}
+          {days.map((f) => {
+            const c = courseOf(f.course_id);
+            const inner = (
+              <>
+                <div style={{ width: 44, height: 44, borderRadius: 11, background: "var(--pine)", color: "#F2EFE2", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", fontFamily: "var(--serif)", fontWeight: 700, flex: "0 0 auto", lineHeight: 1.05 }}>
+                  <span style={{ fontSize: 9, letterSpacing: ".08em" }}>DÍA</span><span style={{ fontSize: 17 }}>{f.day_no}</span>
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 700, fontSize: 13.5 }}>{f.courseName ?? "Cancha a definir"}</div>
+                  <div className="muted">{fmtDay(f.date)}{f.tee_time ? ` · primer tee ${fmtTee(f.tee_time)} hs` : ""} · {f.modality === "individual" ? "Individual" : "Fourball"}{c ? ` · par ${c.par_total}` : ""}</div>
+                </div>
+                {c?.location_url && <span style={{ marginLeft: "auto", color: "var(--pine-soft)", fontSize: 12, fontWeight: 700 }}>Mapa ›</span>}
+              </>
+            );
+            const style = { display: "flex", gap: 12, alignItems: "center", padding: 13, borderBottom: "1px solid var(--line-soft)", textDecoration: "none", color: "inherit" } as const;
+            return c?.location_url
+              ? <a key={f.id} href={c.location_url} target="_blank" rel="noopener" style={style}>{inner}</a>
+              : <div key={f.id} style={style}>{inner}</div>;
+          })}
         </div>
       )}
     </>

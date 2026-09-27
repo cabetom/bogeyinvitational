@@ -362,3 +362,67 @@ a{color:inherit}
 .install-banner .ib-btn{flex:0 0 auto;background:#EFE8D6;color:var(--pine-deep);border:0;border-radius:9px;padding:9px 15px;font-weight:700;font-size:12.5px;cursor:pointer}
 .install-banner .ib-x{flex:0 0 auto;background:transparent;border:0;color:#9DB29A;font-size:14px;cursor:pointer;padding:6px 4px}
 @media (min-width:900px){.install-banner{display:none}}
+
+/* ---------- revisión pre-viaje (2026) ---------- */
+button.link{background:none;border:0;padding:0;font:inherit;font-weight:700;color:var(--pine-soft);text-decoration:underline;cursor:pointer}
+.eyebrow{font-size:10.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint)}
+.center-msg .btn-primary{max-width:260px;margin:18px auto 0;display:block}
+.note.warn{border-left-color:var(--gold);background:var(--gold-soft)}
+.note.ok{border-left-color:var(--win)}
+.save-msg{text-align:center;margin-top:12px;font-weight:700;font-size:13.5px}
+.save-msg.ok{color:var(--win)}
+.save-msg.err{color:var(--loss);font-weight:600}
+.gross-sum{display:flex;justify-content:space-between;gap:8px;margin-top:10px;font-size:12px;color:var(--ink-soft);padding:0 4px}
+.gross-sum b{color:var(--ink);font-size:14px;margin-left:3px}
+.hole .hn{min-width:58px}
+.hole .recv{display:inline;color:var(--gold);font-size:14px;letter-spacing:1px;margin-left:2px;line-height:0}
+.hin{width:58px;padding:11px 4px;font-size:18px;font-weight:700}
+.hin:focus{outline:2px solid var(--gold);outline-offset:0;background:var(--surface)}
+.mini-btn{padding:8px 11px;font-size:12px}
+.adm-row{padding:10px 4px;border-bottom:1px solid var(--line-soft)}
+.adm-row .top{display:flex;align-items:center;gap:10px}
+.adm-row .ctrls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center}
+.adm-row .ctrls select,.adm-row .ctrls input{font:inherit;font-size:12px;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink)}
+.adm-row .ctrls input{width:64px;text-align:center}
+.today-card{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:var(--r);padding:14px 16px;box-shadow:var(--shadow)}
+.today-card .t{font-family:var(--serif);font-weight:700;font-size:17px}
+.today-card .s{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.today-card .pair{font-size:12.5px;margin-top:8px}
+.today-card .btn-primary{margin-top:12px}
+.day-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.day-chips span{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px;background:var(--surface-2);color:var(--ink-soft);border:1px solid var(--line-soft)}
+.day-chips span.miss{color:var(--ink-faint);border-style:dashed}
+/* gastos */
+.money-hero{margin-top:4px;background:linear-gradient(160deg,var(--pine),var(--pine-deep));color:#F2EFE2;border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.money-hero .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#B9C9B4}
+.money-hero .v{font-family:var(--serif);font-size:32px;font-weight:700;margin-top:2px}
+.money-hero .sub{font-size:12px;color:#CFE0C9}
+.money-hero .split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.15)}
+.money-hero .kk{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#B9C9B4}
+.money-hero .vv{font-size:18px;font-weight:700}
+/* camionetas */
+.van{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.van .vh{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line-soft)}
+.van .vn{font-weight:700;font-size:14px}
+.van .vc{font-size:11.5px;color:var(--ink-faint)}
+.van .seat{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:13px;border-bottom:1px solid var(--line-soft)}
+.van .seat .rl{margin-left:auto;font-size:11px;color:var(--ink-faint)}
+.van .vh .cap{margin-left:auto;font-size:12px;font-weight:700;color:var(--ink-soft)}
+.live-lead{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:2px}
+.live-lead button{padding:10px 4px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--ink-soft)}
+.live-lead button.on.pato{background:var(--pato);color:#fff;border-color:var(--pato)}
+.live-lead button.on.tano{background:var(--tano);color:#fff;border-color:var(--tano)}
+.live-lead button.on.h{background:var(--pine);color:#fff;border-color:var(--pine)}
+/* grilla de hoyos: que entre en 360-375px */
+.hole{gap:6px;padding:6px 8px;min-width:0}
+.hole .hn{min-width:44px;font-size:12px}
+.hole .hn span{font-size:9.5px;line-height:1.25}
+.hole .recv{font-style:normal}
+.hin{width:48px;padding:10px 2px}
+.hole .hp{min-width:22px}
+/* selects con flecha (antes parecían cajas de texto) */
+select.field{background-image:linear-gradient(45deg,transparent 50%,var(--ink-soft) 50%),linear-gradient(135deg,var(--ink-soft) 50%,transparent 50%);background-position:calc(100% - 18px) 55%,calc(100% - 13px) 55%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px}
+/* modo oscuro: íconos de fecha/hora visibles y botones de En vivo legibles */
+:root[data-theme="dark"]{color-scheme:dark}
+:root[data-theme="dark"] .live-lead button.on.pato,:root[data-theme="dark"] .live-lead button.on.tano,:root[data-theme="dark"] .live-lead button.on.h{color:#0F1A13}
+.live-pill{white-space:nowrap}

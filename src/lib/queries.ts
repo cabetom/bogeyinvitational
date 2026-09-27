@@ -58,44 +58,51 @@ export async function getRanking(editionId: string): Promise<RankRow[]> {
     getTeams(editionId),
     supabase
       .from("scorecards")
-      .select("stableford, player_id, fixtures!inner(edition_id)")
+      .select("stableford, player_id, fixture_id, fixtures!inner(edition_id)")
       .eq("fixtures.edition_id", editionId),
   ]);
   if (cards.error) throw cards.error;
 
   const teamById = new Map(teams.map((t) => [t.id, t]));
-  const agg = new Map<string, { points: number; rounds: number }>();
-  for (const c of (cards.data ?? []) as { stableford: number | null; player_id: string }[]) {
-    const cur = agg.get(c.player_id) ?? { points: 0, rounds: 0 };
+  const agg = new Map<string, { points: number; rounds: number; byFixture: Record<string, number | null> }>();
+  for (const c of (cards.data ?? []) as { stableford: number | null; player_id: string; fixture_id: string }[]) {
+    const cur = agg.get(c.player_id) ?? { points: 0, rounds: 0, byFixture: {} };
     cur.points += c.stableford ?? 0;
     cur.rounds += c.stableford != null ? 1 : 0;
+    cur.byFixture[c.fixture_id] = c.stableford;
     agg.set(c.player_id, cur);
   }
 
   const rows: RankRow[] = roster.map((r) => {
-    const a = agg.get(r.player_id) ?? { points: 0, rounds: 0 };
+    const a = agg.get(r.player_id) ?? { points: 0, rounds: 0, byFixture: {} };
     return {
       player: r.players,
       team: r.team_id ? teamById.get(r.team_id) ?? null : null,
       points: a.points,
       rounds: a.rounds,
+      byFixture: a.byFixture,
+      pos: 0,
     };
   });
-  rows.sort((x, y) => y.points - x.points);
+  rows.sort((x, y) => y.points - x.points || x.player.full_name.localeCompare(y.player.full_name));
+  // empates comparten posición (1, 2, 2, 4…)
+  rows.forEach((row, i) => { row.pos = i > 0 && rows[i - 1].points === row.points ? rows[i - 1].pos : i + 1; });
   return rows;
 }
 
-/** Cantidad de matches ganados por equipo. */
+/** Puntos por equipo de los partidos cerrados (ganado = 1, empate = 0.5 cada uno). */
 export async function getTeamScore(editionId: string): Promise<Record<string, number>> {
   const { data, error } = await supabase
     .from("match_results")
-    .select("winner_team_id, matches!inner(fixtures!inner(edition_id))")
+    .select("winner_side, winner_team_id, matches!inner(team_a_id, team_b_id, fixtures!inner(edition_id))")
     .eq("matches.fixtures.edition_id", editionId);
   if (error) throw error;
   const out: Record<string, number> = {};
-  for (const r of (data ?? []) as { winner_team_id: string | null }[]) {
-    if (!r.winner_team_id) continue;
-    out[r.winner_team_id] = (out[r.winner_team_id] ?? 0) + 1;
+  const add = (id: string | null | undefined, n: number) => { if (id) out[id] = (out[id] ?? 0) + n; };
+  type Row = { winner_side: string | null; winner_team_id: string | null; matches: { team_a_id: string | null; team_b_id: string | null } };
+  for (const r of (data ?? []) as unknown as Row[]) {
+    if (r.winner_side === "H") { add(r.matches?.team_a_id, 0.5); add(r.matches?.team_b_id, 0.5); }
+    else if (r.winner_side) add(r.winner_team_id, 1);
   }
   return out;
 }
@@ -143,8 +150,9 @@ export async function getRyderStandings(editionId: string): Promise<RyderStandin
   const cur = eds.find((e) => e.id === editionId);
   const planned = cur?.total_points ?? 0;
   const totalMatches = Math.max(count.count ?? 0, played, planned);
-  const toWin = totalMatches > 0 ? Math.floor(totalMatches / 2) + 1 : 0;
-  const toRetain = totalMatches > 0 ? toWin - 0.5 : 0;
+  // Como la Ryder: con 10 puntos, el retador necesita 5½ y al campeón le alcanza con 5.
+  const toWin = totalMatches > 0 ? totalMatches / 2 + 0.5 : 0;
+  const toRetain = totalMatches > 0 ? totalMatches / 2 : 0;
 
   // Campeón defensor = ganador de la edición anterior
   let champion: "Pato" | "Tano" | null = null;
@@ -196,19 +204,22 @@ export async function getMatchRecords(editionId: string): Promise<MatchRecord[]>
     else entry.losses++;
   }
   const out = [...rec.values()];
-  out.sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+  out.sort((a, b) => (b.wins + b.halved / 2) - (a.wins + a.halved / 2) || a.losses - b.losses);
   return out;
 }
 
+/** Jugador del usuario logueado. null = no hay jugador; tira error si falla la red (no confundir con "no vinculado"). */
 export async function getMyPlayer(authUserId: string, email: string | null): Promise<Player | null> {
   // Login por matrícula: el email interno identifica al jugador (no se pisa el auth_user_id de Google).
   const matricula = matriculaFromEmail(email);
   if (matricula) {
-    const { data } = await supabase.from("players").select("*").eq("matricula", matricula).maybeSingle();
+    const { data, error } = await supabase.from("players").select("*").eq("matricula", matricula).maybeSingle();
+    if (error) throw error;
     return (data as Player) ?? null;
   }
   // Google: primero por auth_user_id; si no, por email (y lo linkeamos).
-  let { data } = await supabase.from("players").select("*").eq("auth_user_id", authUserId).maybeSingle();
+  const { data, error } = await supabase.from("players").select("*").eq("auth_user_id", authUserId).maybeSingle();
+  if (error) throw error;
   if (data) return data as Player;
   if (email) {
     const byEmail = await supabase
@@ -216,6 +227,7 @@ export async function getMyPlayer(authUserId: string, email: string | null): Pro
       .select("*")
       .ilike("email", email)
       .maybeSingle();
+    if (byEmail.error) throw byEmail.error;
     if (byEmail.data) {
       await supabase.from("players").update({ auth_user_id: authUserId }).eq("id", (byEmail.data as Player).id);
       return byEmail.data as Player;

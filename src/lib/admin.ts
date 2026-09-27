@@ -45,3 +45,22 @@ export async function setPlayerAdmin(playerId: string, isAdmin: boolean): Promis
   const { error } = await supabase.from("players").update({ is_admin: isAdmin }).eq("id", playerId);
   if (error) throw error;
 }
+
+/** Hándicap del jugador en la edición (lo usa Cargar como valor por defecto). */
+export async function setEditionHandicap(editionId: string, playerId: string, handicap: number | null): Promise<void> {
+  const { error } = await supabase
+    .from("edition_players")
+    .update({ handicap })
+    .eq("edition_id", editionId)
+    .eq("player_id", playerId);
+  if (error) throw error;
+}
+
+export async function setPlayerTeam(editionId: string, playerId: string, teamId: string | null): Promise<void> {
+  const { error } = await supabase
+    .from("edition_players")
+    .update({ team_id: teamId })
+    .eq("edition_id", editionId)
+    .eq("player_id", playerId);
+  if (error) throw error;
+}

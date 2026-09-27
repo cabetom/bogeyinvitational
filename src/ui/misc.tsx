@@ -55,3 +55,17 @@ export function Avatar({
 export function Spinner() {
   return <div className="spinner" aria-label="Cargando" />;
 }
+
+/** Qué mostrar cuando todavía no hay jugador: cargando, sin señal o usuario sin jugador. */
+export function PlayerStatusMsg({ status }: { status: "loading" | "ok" | "none" | "error" }) {
+  if (status === "loading" || status === "ok") return <Spinner />;
+  if (status === "error") {
+    return <div className="center-msg">Sin conexión. Reintentando…<br /><span className="muted">Apenas vuelva la señal, sigue solo.</span></div>;
+  }
+  return (
+    <div className="center-msg">
+      Tu usuario no está vinculado a ningún jugador del torneo.<br />
+      Pedile a un admin (el Pato, el Tano o Tomás) que te cargue tu matrícula.
+    </div>
+  );
+}

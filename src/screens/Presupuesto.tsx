@@ -14,6 +14,22 @@ function money(n: number): string {
   return "$ " + Math.round(n).toLocaleString("es-AR");
 }
 
+/** Montos en formato argentino: "150.000" = 150000 · "1.500,50" = 1500.5 · "1500.5" = 1500.5 */
+function parseAmount(raw: string): number {
+  let t = raw.replace(/[^\d.,]/g, "").replace(/[.,]+$/, ""); // "$150.000.-" -> "150.000"
+  const lastDot = t.lastIndexOf("."), lastComma = t.lastIndexOf(",");
+  if (lastDot >= 0 && lastComma >= 0) {
+    // el último separador es el decimal: "1.500,50" o "1,200.50"
+    const decComma = lastComma > lastDot;
+    t = t.split(decComma ? "." : ",").join("");
+    if (decComma) t = t.replace(",", ".");
+  } else if (lastComma >= 0) {
+    t = /^\d{1,3}(,\d{3})+$/.test(t) ? t.replace(/,/g, "") : t.replace(",", ".");
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, "");
+  const n = Number(t);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
 export function Presupuesto() {
   const nav = useNav();
   const { edition } = useAppData();
@@ -52,12 +68,13 @@ export function Presupuesto() {
       const ps = r.map((x: any) => x.players as Player);
       setRoster(ps);
       setPicked(new Set(ps.map((p) => p.id)));
-      if (player) setPaidBy((v) => v || player.id);
-      else if (ps[0]) setPaidBy((v) => v || ps[0].id);
+      // por defecto pagó uno mismo, si viaja; si no (admin que no viaja), el primero de la lista
+      const def = player && ps.some((p) => p.id === player.id) ? player.id : ps[0]?.id ?? "";
+      setPaidBy((v) => (v && ps.some((p) => p.id === v) ? v : def));
     });
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [edition]);
+  }, [edition?.id]);
 
   if (!edition) return <Spinner />;
 
@@ -70,7 +87,7 @@ export function Presupuesto() {
   }
 
   async function onAdd() {
-    const amt = Number(amount.replace(/[^\d.]/g, ""));
+    const amt = parseAmount(amount);
     if (!desc.trim() || !amt || !paidBy) return;
     const participantIds = splitAll ? roster.map((p) => p.id) : [...picked];
     if (participantIds.length === 0) return;
@@ -136,7 +153,8 @@ export function Presupuesto() {
           <label className="form-lbl" style={{ marginTop: 0 }}>¿Qué se pagó?</label>
           <input className="field" value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej: Alojamiento 3 noches" />
           <label className="form-lbl">Monto</label>
-          <input className="field tabular" inputMode="numeric" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" />
+          <input className="field tabular" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Ej: 150.000" />
+          {amount && <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>= {money(parseAmount(amount))}</p>}
           <label className="form-lbl">Tipo de gasto</label>
           <select className="field" value={category} onChange={(e) => setCategory(e.target.value)}>
             {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}

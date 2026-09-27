@@ -1,5 +1,14 @@
 import { supabase } from "./supabase";
+import { roundStableford, type HoleInfo } from "./scoring";
 import type { Course, Fixture } from "./types";
+
+/** Corta un pedido colgado (señal mala) para poder avisarle al jugador. */
+export function withTimeout<T>(p: PromiseLike<T>, ms = 15000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error("timeout")), ms);
+    Promise.resolve(p).then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
 
 export interface DayMatch {
   id: string;
@@ -35,7 +44,7 @@ export async function getDayResults(editionId: string): Promise<DayResults[]> {
     .from("matches")
     .select(
       "id, modality, fixture_id, " +
-        "fixtures!inner(id, edition_id, day_no, date, course_id, modality, courses(name)), " +
+        "fixtures!inner(id, edition_id, day_no, date, course_id, modality, tee_time, courses(name)), " +
         "match_players(side, players(full_name)), " +
         "match_results(winner_side)"
     )
@@ -49,7 +58,7 @@ export async function getDayResults(editionId: string): Promise<DayResults[]> {
       byFixture.set(fx.id, {
         fixture: {
           id: fx.id, edition_id: fx.edition_id, day_no: fx.day_no,
-          date: fx.date, course_id: fx.course_id, modality: fx.modality,
+          date: fx.date, course_id: fx.course_id, modality: fx.modality, tee_time: fx.tee_time ?? null,
         },
         courseName: fx.courses?.name ?? null,
         matches: [],
@@ -143,46 +152,86 @@ export async function getPlayerHistory(playerId: string, editionId: string): Pro
   return rows.sort((a, b) => b.dayNo - a.dayNo);
 }
 
-export async function upsertScorecardTotal(
-  fixtureId: string,
-  playerId: string,
-  stableford: number,
-  submittedBy: string,
-  handicap: number | null = null
-): Promise<void> {
-  const { error } = await supabase
+export interface SavedCard {
+  id: string;
+  stableford: number | null;
+  handicap: number | null;
+  entry_mode: string | null;
+  submittedByName: string | null;
+  gross: Record<number, number>;
+  /** ms epoch de la última vez que se guardó (para saber si un borrador local es más nuevo). */
+  updatedAt: number;
+}
+
+/** Tarjeta ya guardada de un jugador en una fecha (con sus hoyos), o null. */
+export async function getScorecard(fixtureId: string, playerId: string): Promise<SavedCard | null> {
+  const { data, error } = await supabase
     .from("scorecards")
-    .upsert(
-      { fixture_id: fixtureId, player_id: playerId, stableford, entry_mode: "total", handicap, submitted_by: submittedBy },
-      { onConflict: "fixture_id,player_id" }
-    );
+    .select("id, stableford, handicap, entry_mode, updated_at, submitter:players!scorecards_submitted_by_fkey(full_name), hole_scores(hole_no, strokes)")
+    .eq("fixture_id", fixtureId)
+    .eq("player_id", playerId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const d = data as any;
+  const gross: Record<number, number> = {};
+  for (const h of d.hole_scores ?? []) if (h.strokes > 0) gross[h.hole_no] = h.strokes;
+  return {
+    id: d.id, stableford: d.stableford, handicap: d.handicap != null ? Number(d.handicap) : null,
+    entry_mode: d.entry_mode, submittedByName: d.submitter?.full_name ?? null, gross,
+    updatedAt: d.updated_at ? Date.parse(d.updated_at) : 0,
+  };
+}
+
+/** Guarda la tarjeta en UNA transacción (RPC save_scorecard): la tarjeta + exactamente los hoyos cargados.
+ *  entry_mode "total" guarda solo el stableford (sin hoyos). */
+export async function saveScorecard(input: {
+  fixtureId: string; playerId: string; handicap: number | null; stableford: number;
+  mode: "hole_by_hole" | "total"; submittedBy: string; gross?: Record<number, number>;
+}): Promise<void> {
+  const holes = Object.entries(input.gross ?? {})
+    .filter(([, v]) => v != null && v > 0)
+    .map(([h, v]) => ({ hole_no: Number(h), strokes: v }));
+  const { error } = await supabase.rpc("save_scorecard", {
+    p_fixture_id: input.fixtureId, p_player_id: input.playerId, p_handicap: input.handicap,
+    p_stableford: input.stableford, p_entry_mode: input.mode, p_submitted_by: input.submittedBy,
+    p_holes: input.mode === "hole_by_hole" ? holes : [],
+  });
   if (error) throw error;
 }
 
-/** Guarda la vuelta hoyo por hoyo + hándicap; el stableford neto ya viene calculado. */
-export async function saveHoleByHole(
-  fixtureId: string,
-  playerId: string,
-  handicap: number,
-  grossByHole: Record<number, number>,
-  stableford: number,
-  submittedBy: string
-): Promise<void> {
-  const { data, error } = await supabase
+/** Recalcula el stableford guardado de las tarjetas hoyo por hoyo (p. ej. después de corregir pares/SI de una cancha). */
+export async function recomputeCards(opts: { courseId?: string; editionId?: string; playerId?: string; fixtureId?: string }): Promise<number> {
+  let q = supabase
     .from("scorecards")
-    .upsert(
-      { fixture_id: fixtureId, player_id: playerId, stableford, entry_mode: "hole_by_hole", handicap, submitted_by: submittedBy },
-      { onConflict: "fixture_id,player_id" }
-    )
-    .select("id")
-    .single();
+    .select("id, stableford, handicap, player_id, fixtures!inner(course_id, edition_id), hole_scores(hole_no, strokes)")
+    .eq("entry_mode", "hole_by_hole");
+  if (opts.courseId) q = q.eq("fixtures.course_id", opts.courseId);
+  if (opts.editionId) q = q.eq("fixtures.edition_id", opts.editionId);
+  if (opts.playerId) q = q.eq("player_id", opts.playerId);
+  if (opts.fixtureId) q = q.eq("fixture_id", opts.fixtureId);
+  const { data, error } = await q;
   if (error) throw error;
-  const scId = (data as { id: string }).id;
-  const rows = Object.entries(grossByHole)
-    .filter(([, v]) => v != null && v > 0)
-    .map(([h, v]) => ({ scorecard_id: scId, hole_no: Number(h), strokes: v }));
-  if (rows.length) {
-    const { error: e2 } = await supabase.from("hole_scores").upsert(rows, { onConflict: "scorecard_id,hole_no" });
-    if (e2) throw e2;
+  const holesByCourse = new Map<string, HoleInfo[]>();
+  let changed = 0;
+  for (const c of (data ?? []) as any[]) {
+    const courseId = c.fixtures?.course_id;
+    if (!courseId || c.handicap == null) continue;
+    if (!holesByCourse.has(courseId)) {
+      const h = await supabase.from("course_holes").select("hole_no, par, stroke_index").eq("course_id", courseId);
+      if (h.error) throw h.error;
+      holesByCourse.set(courseId, (h.data ?? []) as HoleInfo[]);
+    }
+    const holes = holesByCourse.get(courseId)!;
+    if (holes.length !== 18) continue;
+    const gross: Record<number, number> = {};
+    for (const hs of c.hole_scores ?? []) if (hs.strokes > 0) gross[hs.hole_no] = hs.strokes;
+    const pts = roundStableford(gross, holes, Number(c.handicap));
+    if (pts !== c.stableford) {
+      const u = await supabase.from("scorecards").update({ stableford: pts }).eq("id", c.id);
+      if (u.error) throw u.error;
+      changed++;
+    }
   }
+  return changed;
 }

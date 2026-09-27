@@ -53,6 +53,7 @@ export interface Fixture {
   date: string | null;
   course_id: string | null;
   modality: Modality;
+  tee_time?: string | null; // "09:30:00"
 }
 
 export interface Scorecard {
@@ -77,6 +78,10 @@ export interface RankRow {
   team: Team | null;
   points: number;
   rounds: number;
+  /** Stableford por fecha (fixture_id -> puntos). */
+  byFixture: Record<string, number | null>;
+  /** Posición compartida en caso de empate (1, 2, 2, 4…). */
+  pos: number;
 }
 
 /** Récord de matches de un jugador (para MVP e historial). */

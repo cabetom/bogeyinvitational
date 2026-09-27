@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./auth/AuthProvider";
 import { AppDataProvider, useAppData } from "./data/AppData";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
@@ -63,12 +63,15 @@ function TickerBanner() {
   const p = pato ? teamScore[pato.id] ?? 0 : 0;
   const t = tano ? teamScore[tano.id] ?? 0 : 0;
 
+  const fmt = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
   const items: string[] = [];
-  items.push(`⛳  PATO  ${p} – ${t}  TANO`);
+  items.push(`⛳  PATO  ${fmt(p)} – ${fmt(t)}  TANO`);
   items.push(p === t ? "Van empatados" : `Lidera el ${p > t ? "Pato" : "Tano"}`);
-  ranking.slice(0, 5).forEach((r, i) => {
-    items.push(`${i === 0 ? "🧥 " : `${i + 1}. `}${displayName(r.player.full_name)} · ${r.points}`);
-  });
+  if (ranking.some((r) => r.rounds > 0)) {
+    ranking.slice(0, 5).forEach((r) => {
+      items.push(`${r.pos}. ${displayName(r.player.full_name)} · ${r.points}`);
+    });
+  }
   if (edition) items.push(`Edición ${edition.year}`);
   if (items.length < 3) return null;
 
@@ -112,7 +115,26 @@ function InstallBanner() {
 }
 
 function Shell() {
-  const [screen, setScreen] = useState<Screen>("inicio");
+  const initialScreen = ((window.history.state?.screen as Screen | undefined) ?? "inicio");
+  const [screen, setScreenState] = useState<Screen>(initialScreen);
+  const screenRef = useRef<Screen>(initialScreen);
+
+  // Historial del navegador: el botón "atrás" de Android vuelve a la pantalla anterior en vez de cerrar la app.
+  useEffect(() => {
+    window.history.replaceState({ screen: screenRef.current }, "");
+    const onPop = (e: PopStateEvent) => {
+      const s = (e.state?.screen as Screen) ?? "inicio";
+      screenRef.current = s;
+      setScreenState(s);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+  const setScreen = useCallback((s: Screen) => {
+    if (screenRef.current !== s) window.history.pushState({ screen: s }, "");
+    screenRef.current = s;
+    setScreenState(s);
+  }, []);
   const { editions, selectedEditionId, setEditionId, teams, teamScore, reload } = useAppData();
 
   // Realtime: cualquier cambio en un partido refresca el marcador de toda la app + notifica.
@@ -124,14 +146,17 @@ function Shell() {
         const row = payload.new as { status?: string } | null;
         if (row?.status === "final") notify("Bogey Invitational", "Se cerró un partido ⛳ — mirá cómo va la Copa");
       })
+      // tarjetas nuevas o corregidas => el ranking de todos se actualiza solo
+      .on("postgres_changes", { event: "*", schema: "public", table: "scorecards" }, () => reload())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [reload]);
 
   const patoId = teams.find((t) => t.name === "Pato")?.id;
   const tanoId = teams.find((t) => t.name === "Tano")?.id;
+  const fmt = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
   const edScore =
-    patoId && tanoId ? `${teamScore[patoId] ?? 0}–${teamScore[tanoId] ?? 0}` : "–";
+    patoId && tanoId ? `${fmt(teamScore[patoId] ?? 0)}–${fmt(teamScore[tanoId] ?? 0)}` : "–";
 
   const body: Record<Screen, ReactNode> = {
     inicio: <Home />, ranking: <Ranking />, equipos: <Equipos />, cargar: <Cargar />,
@@ -199,7 +224,7 @@ function Shell() {
 }
 
 export function App() {
-  const { loading, session } = useAuth();
+  const { loading, session, offline } = useAuth();
 
   if (!isSupabaseConfigured) {
     return (
@@ -210,6 +235,15 @@ export function App() {
     );
   }
   if (loading) return <div className="app"><Spinner /></div>;
+  if (!session && offline) {
+    return (
+      <div className="login">
+        <img className="logo-orig" src="/logo-original.png" alt="Bogey Invitational" />
+        <p><b>Sin conexión.</b> Tu sesión sigue guardada: apenas vuelva la señal, entrás solo.</p>
+        <button className="btn-login" style={{ maxWidth: 320, marginTop: 18 }} onClick={() => window.location.reload()}>Reintentar</button>
+      </div>
+    );
+  }
   if (!session) return <Login />;
   if (mustChangePassword(session.user)) {
     return <ChangePassword forced matricula={matriculaFromEmail(session.user.email)} />;

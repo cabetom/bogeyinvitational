@@ -26,7 +26,11 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/auth/],
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"]
+        globPatterns: ["**/*.{js,css,html,svg,png,webp,woff2}"],
+        cleanupOutdatedCaches: true,
+        // versión nueva => toma el control enseguida (registerSW en src/main.tsx recarga la página)
+        skipWaiting: true,
+        clientsClaim: true
       }
     })
   ]

@@ -9,10 +9,21 @@ export interface HoleInfo {
   stroke_index: number; // 1..18
 }
 
-/** Golpes de hándicap que recibe un jugador en un hoyo dado. */
-export function strokesReceived(playingHandicap: number, strokeIndex: number): number {
-  const base = Math.floor(playingHandicap / 18);
-  const extra = playingHandicap % 18;
+/** Hándicap de juego entero (12.4 -> 12, 12.5 -> 13). */
+export function playingHandicap(h: number): number {
+  return Math.round(h);
+}
+
+/** Golpes de hándicap que recibe un jugador en un hoyo dado (negativo = hándicap "plus", devuelve golpes). */
+export function strokesReceived(handicap: number, strokeIndex: number): number {
+  const ph = playingHandicap(handicap);
+  if (ph < 0) {
+    // plus: devuelve golpes empezando por los hoyos más fáciles (SI 18, 17, …)
+    const give = -ph;
+    return -(Math.floor(give / 18) + (strokeIndex > 18 - (give % 18) ? 1 : 0));
+  }
+  const base = Math.floor(ph / 18);
+  const extra = ph % 18;
   return base + (strokeIndex <= extra ? 1 : 0);
 }
 
@@ -92,4 +103,18 @@ export function resolveFourball(
     margin = remaining > 0 && lead > remaining ? `${lead}&${remaining}` : `${lead} up`;
   }
   return { winner, holesUp: up, holesPlayed: played, margin };
+}
+
+/** Hándicap escrito a mano: "12,5" -> 12.5 · "+2" (plus) -> -2 · "" -> null. Mismo criterio en Cargar y en Gestión. */
+export function parseHcp(s: string): number | null {
+  const t = s.trim().replace(",", ".");
+  if (t === "" || t === "-" || t === "+") return null;
+  const n = Number(t.startsWith("+") ? `-${t.slice(1)}` : t);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Hándicap para mostrar: -2 -> "+2" · 12.5 -> "12.5" */
+export function fmtHcp(h: number | null | undefined): string {
+  if (h == null) return "";
+  return h < 0 ? `+${-h}` : String(h);
 }

@@ -17,7 +17,7 @@ function RyderBoard({ s }: { s: RyderStandings }) {
   const tanoLbl = champion === "Tano" ? "para retener" : "para ganar";
   const patoW = (patoPts / totalMatches) * 100;
   const tanoW = (tanoPts / totalMatches) * 100;
-  const pending = totalMatches - played;
+  const pending = Math.max(0, totalMatches - played - live);
 
   return (
     <div className="ryderx">
@@ -37,24 +37,26 @@ function RyderBoard({ s }: { s: RyderStandings }) {
       </div>
       <div className="rx-bottom">
         <span>{live} en juego</span>
-        <span>{pending} pendientes</span>
-        <span>{live} en juego</span>
+        <span>{pending} por jugar</span>
+        <span>{played} cerrados</span>
       </div>
     </div>
   );
 }
 
 export function Equipos() {
-  const { edition, teams, teamScore, records, loading } = useAppData();
+  const { edition, teams, teamScore, records, loading, version } = useAppData();
   const [days, setDays] = useState<DayResults[] | null>(null);
   const [ryder, setRyder] = useState<RyderStandings | null>(null);
 
+  const [ryderErr, setRyderErr] = useState(false);
+  useEffect(() => { setDays(null); setRyder(null); }, [edition?.id]);
+  // se refresca con cada actualización de datos (realtime, volver a la app) sin volver al spinner
   useEffect(() => {
     if (!edition) return;
-    setDays(null); setRyder(null);
-    getDayResults(edition.id).then(setDays).catch(() => setDays([]));
-    getRyderStandings(edition.id).then(setRyder).catch(() => setRyder(null));
-  }, [edition]);
+    getDayResults(edition.id).then(setDays).catch(() => setDays((d) => d ?? []));
+    getRyderStandings(edition.id).then((r) => { setRyder(r); setRyderErr(false); }).catch(() => setRyderErr(true));
+  }, [edition, version]);
 
   if (loading) return <Spinner />;
 
@@ -65,26 +67,26 @@ export function Equipos() {
   return (
     <>
       <div className="sec-title" style={{ marginTop: 2 }}><h2>Copa · Ryder</h2></div>
-      {ryder ? <RyderBoard s={ryder} /> : <Spinner />}
+      {ryder ? <RyderBoard s={ryder} /> : ryderErr ? <div className="center-msg">No se pudo cargar la Copa (¿sin señal?). Reintentando…</div> : <Spinner />}
 
       <div className="teamsplit" style={{ marginTop: 14 }}>
         <div className="teamcard pato">
           <div className="cap">Capitán · el Pato</div><div className="nm">Pato</div>
-          <div className="big">{pato ? teamScore[pato.id] ?? 0 : 0}</div>
+          <div className="big">{fmtPts(pato ? teamScore[pato.id] ?? 0 : 0)}</div>
         </div>
         <div className="teamcard tano">
           <div className="cap">Capitán · el Tano</div><div className="nm">Tano</div>
-          <div className="big">{tano ? teamScore[tano.id] ?? 0 : 0}</div>
+          <div className="big">{fmtPts(tano ? teamScore[tano.id] ?? 0 : 0)}</div>
         </div>
       </div>
 
-      {mvp && mvp.wins + mvp.losses > 0 && (
+      {mvp && mvp.wins + mvp.losses + mvp.halved > 0 && (
         <>
           <div className="sec-title"><h2>MVP del torneo</h2></div>
           <div className="mvp">
             <div className="crown">👑</div>
             <div className="who"><div className="nm">{displayName(mvp.player.full_name)}</div><div className="s">Mejor récord de matches</div></div>
-            <div className="rec"><b>{mvp.wins}–{mvp.losses}</b><span>Matches</span></div>
+            <div className="rec"><b>{mvp.wins}–{mvp.losses}{mvp.halved ? `–${mvp.halved}` : ""}</b><span>G–P{mvp.halved ? "–E" : ""}</span></div>
           </div>
         </>
       )}
@@ -92,21 +94,22 @@ export function Equipos() {
       <div className="sec-title"><h2>Resultados por día</h2></div>
       {days && days.length === 0 && <div className="muted" style={{ padding: "0 4px" }}>Sin partidos cargados todavía.</div>}
       {!days ? <Spinner /> : days.map((d) => {
-        const a = d.matches.filter((m) => m.winner === "A").length;
-        const b = d.matches.filter((m) => m.winner === "B").length;
+        const halves = d.matches.filter((m) => m.winner === "H").length * 0.5;
+        const a = d.matches.filter((m) => m.winner === "A").length + halves;
+        const b = d.matches.filter((m) => m.winner === "B").length + halves;
         return (
           <div key={d.fixture.id}>
             <div className="dayhdr">
               <span className="dn">Día {d.fixture.day_no}</span>
               <span className="dc">{d.courseName ?? ""}{d.fixture.modality === "individual" ? " · Individual" : ""}</span>
-              <span className="dscore">{a} – {b}</span>
+              <span className="dscore">{fmtPts(a)} – {fmtPts(b)}</span>
             </div>
             <div className="card">
               {d.matches.map((m) => (
                 <div key={m.id} className="match">
                   <div className="pl a">{m.sideA.map((n, i) => <div key={i} className={m.winner === "A" ? "n" : ""}>{shortName(n)}</div>)}</div>
                   <div className={`res ${m.winner === "A" ? "pato" : m.winner === "B" ? "tano" : "h"}`}>
-                    {m.winner === "A" ? "Pato" : m.winner === "B" ? "Tano" : "—"}
+                    {m.winner === "A" ? "Pato" : m.winner === "B" ? "Tano" : m.winner === "H" ? "AS" : "—"}
                   </div>
                   <div className="pl b">{m.sideB.map((n, i) => <div key={i} className={m.winner === "B" ? "n" : ""}>{shortName(n)}</div>)}</div>
                 </div>

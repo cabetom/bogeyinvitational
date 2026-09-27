@@ -21,7 +21,9 @@ export const mustChangePassword = (u: User | null | undefined) =>
 export async function signInWithMatricula(matricula: string, password: string): Promise<void> {
   const { error } = await supabase.auth.signInWithPassword({ email: matriculaEmail(matricula), password });
   if (error) {
-    throw new Error(/invalid login credentials/i.test(error.message) ? "Matrícula o contraseña incorrecta" : error.message);
+    if (/invalid login credentials/i.test(error.message)) throw new Error("Matrícula o contraseña incorrecta");
+    if (!navigator.onLine || /fetch|network|load failed/i.test(error.message)) throw new Error("Sin señal. Probá de nuevo en un rato.");
+    throw new Error(error.message);
   }
 }
 
@@ -31,7 +33,12 @@ export async function changePassword(newPassword: string): Promise<void> {
     data: { must_change_password: false },
   });
   if (error) {
-    if (/should be different/i.test(error.message)) throw new Error("La contraseña nueva tiene que ser distinta a la actual");
+    if (/should be different/i.test(error.message)) {
+      // Puede pasar si el cambio ya se había guardado y se perdió la respuesta (señal mala): refrescar y seguir.
+      const { data } = await supabase.auth.refreshSession();
+      if (data.user && data.user.user_metadata?.must_change_password !== true) return;
+      throw new Error("La contraseña nueva tiene que ser distinta a la actual");
+    }
     if (/at least/i.test(error.message)) throw new Error("La contraseña es muy corta");
     throw error;
   }

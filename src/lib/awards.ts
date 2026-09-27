@@ -10,8 +10,8 @@ const ICONS: Record<string, string> = {
   otros: "🏅",
 };
 export const AWARD_CATS = [
-  { key: "chaqueta", label: "🧥 Chaqueta / Stableford" },
-  { key: "copa", label: "🏆 Copa por equipos" },
+  { key: "stableford", label: "🧥 Chaqueta / Stableford" },
+  { key: "teams", label: "🏆 Copa por equipos" },
   { key: "mvp", label: "👑 MVP" },
   { key: "longest", label: "🚀 Longest Drive" },
   { key: "approach", label: "🎯 Approach a bandera" },

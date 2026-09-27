@@ -42,13 +42,41 @@ export async function addFixture(
   dayNo: number,
   date: string | null,
   courseId: string | null,
-  modality: Modality
+  modality: Modality,
+  teeTime: string | null = null
 ): Promise<void> {
   const id = `${editionId}-d${dayNo}-${crypto.randomUUID().slice(0, 4)}`;
   const { error } = await supabase
     .from("fixtures")
-    .insert({ id, edition_id: editionId, day_no: dayNo, date, course_id: courseId, modality });
+    .insert({ id, edition_id: editionId, day_no: dayNo, date, course_id: courseId, modality, tee_time: teeTime });
   if (error) throw error;
+}
+
+export async function updateFixture(id: string, patch: { date?: string | null; course_id?: string | null; modality?: Modality; tee_time?: string | null }): Promise<void> {
+  const { error } = await supabase.from("fixtures").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+/** Cuántas tarjetas y partidos se perderían al borrar una fecha. */
+export async function fixtureDependents(id: string): Promise<{ cards: number; matches: number }> {
+  const [c, m] = await Promise.all([
+    supabase.from("scorecards").select("id", { count: "exact", head: true }).eq("fixture_id", id),
+    supabase.from("matches").select("id", { count: "exact", head: true }).eq("fixture_id", id),
+  ]);
+  if (c.error) throw c.error;
+  if (m.error) throw m.error;
+  return { cards: c.count ?? 0, matches: m.count ?? 0 };
+}
+
+/** Valida los 18 hoyos: pares 3-6 y hándicap (SI) del 1 al 18 sin repetir. Devuelve el error o null. */
+export function validateHoles(holes: HoleRow[]): string | null {
+  if (holes.length !== 18) return "Tienen que ser 18 hoyos.";
+  const bad = holes.find((h) => !(h.par >= 3 && h.par <= 6));
+  if (bad) return `El hoyo ${bad.hole_no} tiene un par inválido.`;
+  const si = holes.map((h) => h.stroke_index);
+  const missing = Array.from({ length: 18 }, (_, i) => i + 1).filter((n) => !si.includes(n));
+  if (missing.length) return `El hándicap de los hoyos tiene que usar del 1 al 18 sin repetir. Falta: ${missing.join(", ")}.`;
+  return null;
 }
 
 export async function deleteFixture(id: string): Promise<void> {

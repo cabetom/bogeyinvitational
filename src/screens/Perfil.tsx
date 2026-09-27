@@ -5,13 +5,13 @@ import { useNav } from "../App";
 import { getPlayerHistory, type HistoryRow } from "../lib/queries_matches";
 import { uploadAvatar } from "../lib/storage";
 import { requestNotify, notifyPermission } from "../lib/notify";
-import { Avatar, displayName, shortName, Spinner } from "../ui/misc";
+import { Avatar, displayName, PlayerStatusMsg, shortName, Spinner } from "../ui/misc";
 import { isMatriculaUser, matriculaFromEmail } from "../lib/auth";
 import { ChangePassword } from "./Login";
 
 export function Perfil() {
   const nav = useNav();
-  const { session, player, signOut, refreshPlayer } = useAuth();
+  const { session, player, playerStatus, signOut, refreshPlayer } = useAuth();
   const [pwOpen, setPwOpen] = useState(false);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const { edition, ranking, records, reload } = useAppData();
@@ -23,7 +23,7 @@ export function Perfil() {
   useEffect(() => {
     if (!player || !edition) return;
     getPlayerHistory(player.id, edition.id).then(setHistory).catch(() => setHistory([]));
-  }, [player, edition]);
+  }, [player?.id, edition?.id]);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -46,7 +46,16 @@ export function Perfil() {
     if (p !== "granted") alert("Activá las notificaciones en los permisos del navegador para recibir avisos.");
   }
 
-  if (!player) return <div className="center-msg">No hay jugador vinculado a tu usuario.</div>;
+  if (!player && playerStatus !== "none") return <PlayerStatusMsg status={playerStatus} />;
+  if (!player) {
+    return (
+      <>
+        <button className="back" onClick={() => nav("more")}>‹ Volver a Más</button>
+        <div className="center-msg">Tu usuario no está vinculado a un jugador del torneo.<br />Pedile a un admin que te cargue tu matrícula.</div>
+        <button className="btn-ghost" onClick={signOut}>Cerrar sesión</button>
+      </>
+    );
+  }
 
   const row = ranking.find((r) => r.player.id === player.id);
   const rec = records.find((r) => r.player.id === player.id);
@@ -70,7 +79,7 @@ export function Perfil() {
 
       <div className="grid2" style={{ marginTop: 16 }}>
         <div className="stat"><div className="n tabular">{row?.points ?? 0}</div><div className="k">Stableford {edition?.year ?? ""}</div></div>
-        <div className="stat"><div className="n tabular">{rec ? `${rec.wins}–${rec.losses}` : "–"}</div><div className="k">Récord de matches</div></div>
+        <div className="stat"><div className="n tabular">{rec ? `${rec.wins}–${rec.losses}${rec.halved ? `–${rec.halved}` : ""}` : "–"}</div><div className="k">Récord G–P{rec?.halved ? "–E" : ""}</div></div>
       </div>
 
       <div className="sec-title"><h2>Historial de partidos</h2></div>

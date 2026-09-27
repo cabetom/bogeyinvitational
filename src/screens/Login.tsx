@@ -69,7 +69,7 @@ export function Login() {
       </form>
       {err && <div className="err">{err}</div>}
       <p style={{ fontSize: 11.5, color: "#7E8F7E", marginTop: 12 }}>
-        La primera vez, la contraseña es tu matrícula.
+        La primera vez, la contraseña es tu matrícula.<br />¿Te la olvidaste? Pedile a un admin que te la resetee.
       </p>
 
       <div className="login-or"><span>o</span></div>
