@@ -146,7 +146,7 @@ export function Presupuesto() {
         </div>
       )}
 
-      <div className="sec-title"><h2>Gastos cargados</h2><button className="link" onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Cerrar" : "+ Agregar"}</button></div>
+      <div className="sec-title"><h2>Gastos cargados</h2>{(player?.is_admin || roster.some((p) => p.id === player?.id)) && <button className="link" onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Cerrar" : "+ Agregar"}</button>}</div>
 
       {showAdd && (
         <div className="card pad">

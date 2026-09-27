@@ -53,3 +53,39 @@ export async function adminSetPlayerLogin(playerId: string, matricula: string, r
   });
   if (error) throw error;
 }
+
+/** "registered" si la matrícula ya tiene usuario, "new" si no. */
+export async function matriculaStatus(matricula: string): Promise<"registered" | "new"> {
+  const { data, error } = await supabase.rpc("matricula_status", { p_matricula: matricula.trim() });
+  if (error) throw error;
+  return data === "registered" ? "registered" : "new";
+}
+
+/** Llama a la Edge Function "wegolf" y devuelve el JSON (o tira el mensaje de error en castellano). */
+async function wegolfFn<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("wegolf", { body });
+  if (error) {
+    let msg = error.message;
+    try {
+      const ctx = (error as { context?: Response }).context;
+      const j = ctx ? await ctx.json() : null;
+      if (j?.error) msg = j.error;
+    } catch { /* ignore */ }
+    if (/failed to send|fetch|network/i.test(msg)) msg = "Sin señal. Probá de nuevo en un rato.";
+    throw new Error(msg);
+  }
+  return data as T;
+}
+
+export interface WegolfInfo { found: boolean | null; fullname: string | null; index: number | null; club: string | null }
+export const lookupWegolf = (matricula: string) => wegolfFn<WegolfInfo>({ action: "lookup", matricula });
+
+export function registerPlayer(input: { matricula: string; nombre: string; apellido: string; team: "Pato" | "Tano"; password: string }) {
+  return wegolfFn<{ ok: true; fullName: string; linked: boolean; index: number | null }>({ action: "register", ...input });
+}
+
+export interface HcpResult { id: string; name?: string; ok: boolean; index: number | null }
+/** Trae el hándicap de we.golf: el propio (scope "self") o el de todo el plantel (admins, ~3 s por jugador). */
+export function refreshHandicaps(scope: "self" | "edition", syncEdition = false) {
+  return wegolfFn<{ results: HcpResult[] }>({ action: "refresh", scope, syncEdition });
+}

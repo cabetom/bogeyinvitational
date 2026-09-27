@@ -5,7 +5,7 @@ import { useNav } from "../App";
 import { getRoster } from "../lib/queries";
 import { getCourses, getFixtures, recomputeCards } from "../lib/queries_matches";
 import { addPlayerToEdition, removeFromEdition, setEditionHandicap, setPlayerAdmin, setPlayerTeam } from "../lib/admin";
-import { adminSetPlayerLogin } from "../lib/auth";
+import { adminSetPlayerLogin, refreshHandicaps } from "../lib/auth";
 import {
   addFixture, deleteFixture, fixtureDependents, getCourseHoles, saveCourseHoles, addCourse, setEditionTotalPoints,
   updateFixture, validateHoles, type HoleRow,
@@ -140,6 +140,20 @@ function PlayersPanel() {
     act(async () => { await setEditionHandicap(edition.id, r.player_id, v); clearEdit(); }, "No se pudo guardar el hándicap", `✓ Hándicap de ${displayName(r.players.full_name)}: ${v == null ? "sin cargar" : fmtHcp(v)}`);
   }
 
+  const [wgBusy, setWgBusy] = useState(false);
+  async function onWegolf() {
+    const sync = confirm("¿Usar los hándicaps de we.golf también como hándicap del torneo?\n\nAceptar: los pone en el torneo (pisa los que cargaste a mano).\nCancelar: solo actualiza el índice de we.golf de cada uno.");
+    setWgBusy(true); setMsg("Consultando we.golf… (unos segundos por jugador)");
+    try {
+      const { results } = await refreshHandicaps("edition", sync);
+      const ok = results.filter((x) => x.ok).length;
+      const bad = results.filter((x) => !x.ok).map((x) => displayName(x.name ?? "?"));
+      setMsg(`✓ ${ok} hándicap(s) actualizados${sync ? " (también en el torneo)" : ""}${bad.length ? ` · sin datos: ${bad.join(", ")}` : ""}`);
+      await refresh(); reload();
+    } catch (e) { setMsg(errText(e, "No se pudo consultar we.golf")); }
+    finally { setWgBusy(false); }
+  }
+
   const missingHcp = roster?.filter((r) => r.handicap == null).length ?? 0;
   const noTeam = roster?.filter((r) => !r.team_id).length ?? 0;
 
@@ -148,6 +162,7 @@ function PlayersPanel() {
       {msg && <p className={`save-msg ${msg.startsWith("✓") ? "ok" : "err"}`} style={{ marginBottom: 10 }}>{msg}</p>}
 
       <div className="sec-title" style={{ marginTop: 4 }}><h2>Plantel</h2><span className="muted">{roster?.length ?? 0} jugadores</span></div>
+      <button className="btn-ghost" style={{ marginTop: 0, marginBottom: 8 }} disabled={wgBusy} onClick={onWegolf}>{wgBusy ? "Consultando we.golf…" : "↻ Traer hándicaps de we.golf"}</button>
       {(missingHcp > 0 || noTeam > 0) && (
         <div className="note warn"><span>⚠️</span><span>
           {missingHcp > 0 && <>{missingHcp} sin hándicap (Cargar lo usa por defecto). </>}
@@ -166,6 +181,7 @@ function PlayersPanel() {
                   </div>
                   <div className="muted" style={{ fontSize: 11.5 }}>
                     {r.players.matricula ? `Matrícula ${r.players.matricula}` : "⚠️ sin matrícula: no puede entrar"}
+                    {r.players.handicap_index != null ? ` · we.golf ${fmtHcp(r.players.handicap_index)}` : ""}
                   </div>
                 </div>
               </div>

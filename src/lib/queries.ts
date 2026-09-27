@@ -82,6 +82,7 @@ export async function getRanking(editionId: string): Promise<RankRow[]> {
       rounds: a.rounds,
       byFixture: a.byFixture,
       pos: 0,
+      handicap: r.handicap != null ? Number(r.handicap) : null,
     };
   });
   rows.sort((x, y) => y.points - x.points || x.player.full_name.localeCompare(y.player.full_name));

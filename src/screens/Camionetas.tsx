@@ -38,6 +38,7 @@ export function Camionetas() {
 
   if (!edition) return <Spinner />;
 
+  const travels = !!player && roster.some((p) => p.id === player.id); // Tomás es admin pero no viaja
   const myVanId = vans?.find((v) => v.seats.some((s) => s.player_id === player?.id))?.id ?? null;
   const assignedIds = new Set(vans?.flatMap((v) => v.seats.map((s) => s.player_id)) ?? []);
 
@@ -103,8 +104,10 @@ export function Camionetas() {
                       <button className="mini-btn" onClick={leave}>Salir</button>
                       <button className="mini-btn" onClick={() => join(v.id, true)}>🚗 Manejo yo</button>
                     </>
-                  ) : !full ? (
+                  ) : !full && travels ? (
                     <button className="mini-btn" onClick={() => join(v.id)}>Sumarme</button>
+                  ) : !full ? (
+                    <span className="muted">{v.capacity - v.seats.length} lugar(es) libre(s)</span>
                   ) : (
                     <span className="muted">Completa</span>
                   )}

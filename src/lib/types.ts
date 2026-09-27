@@ -21,6 +21,13 @@ export interface Player {
   is_admin: boolean;
   auth_user_id: string | null;
   matricula: string | null;
+  /** Equipo de siempre (para quienes no juegan esta edición). */
+  team_name?: "Pato" | "Tano" | null;
+  /** Índice de hándicap de we.golf. */
+  handicap_index?: number | null;
+  handicap_club?: string | null;
+  handicap_updated_at?: string | null;
+  self_registered?: boolean;
 }
 
 export interface Team {
@@ -82,6 +89,8 @@ export interface RankRow {
   byFixture: Record<string, number | null>;
   /** Posición compartida en caso de empate (1, 2, 2, 4…). */
   pos: number;
+  /** Hándicap del torneo (edition_players.handicap). */
+  handicap?: number | null;
 }
 
 /** Récord de matches de un jugador (para MVP e historial). */

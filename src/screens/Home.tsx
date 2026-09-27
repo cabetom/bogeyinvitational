@@ -6,6 +6,8 @@ import { supabase } from "../lib/supabase";
 import { getFixtures } from "../lib/queries_matches";
 import { fmtDay, fmtTee, pickDefaultFixture, todayAR } from "../lib/dates";
 import type { Fixture } from "../lib/types";
+import { refreshHandicaps } from "../lib/auth";
+import { fmtHcp } from "../lib/scoring";
 import { SponsorsBlock } from "./Secciones";
 import { shortName, Spinner } from "../ui/misc";
 
@@ -84,6 +86,56 @@ function TodayCard() {
   );
 }
 
+/** Tu hándicap: el del torneo (si el admin lo cargó) y el índice de we.golf, que se actualiza solo una vez por día. */
+function HcpCard() {
+  const { player, refreshPlayer } = useAuth();
+  const { ranking, isCurrent } = useAppData();
+
+  useEffect(() => {
+    if (!player?.matricula) return;
+    const last = player.handicap_updated_at ? Date.parse(player.handicap_updated_at) : 0;
+    if (Date.now() - last < 12 * 3600 * 1000) return;
+    refreshHandicaps("self").then(() => refreshPlayer()).catch(() => { /* sin señal o we.golf caído */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player?.id]);
+
+  if (!player) return null;
+  const row = ranking.find((r) => r.player.id === player.id);
+  const tourn = isCurrent ? row?.handicap ?? null : null;
+  const idx = player.handicap_index ?? null;
+  if (tourn == null && idx == null) return null;
+  const upd = player.handicap_updated_at ? new Date(player.handicap_updated_at) : null;
+  return (
+    <div className="hcp-card">
+      <div className="v tabular">{fmtHcp(tourn ?? idx)}</div>
+      <div className="k">
+        <b>Tu hándicap{tourn != null ? " del torneo" : ""}</b><br />
+        {idx != null && <>we.golf {fmtHcp(idx)}{player.handicap_club ? ` · ${player.handicap_club}` : ""}{upd ? ` · al ${upd.getDate()}/${upd.getMonth() + 1}` : ""}</>}
+      </div>
+    </div>
+  );
+}
+
+/** Para quien no juega esta edición: su equipo de siempre y cómo viene. */
+function ViewerCard() {
+  const { player } = useAuth();
+  const { ranking, teams, teamScore, isCurrent, edition } = useAppData();
+  if (!player || !isCurrent || ranking.some((r) => r.player.id === player.id)) return null;
+  const tn = player.team_name;
+  if (!tn) return null;
+  const mine = teams.find((t) => t.name === tn);
+  const other = teams.find((t) => t.name !== tn);
+  const a = mine ? teamScore[mine.id] ?? 0 : 0, b = other ? teamScore[other.id] ?? 0 : 0;
+  const players = ranking.filter((r) => r.team?.name === tn).map((r) => shortName(r.player.full_name));
+  return (
+    <div className={`viewer-card ${tn === "Pato" ? "pato" : "tano"}`}>
+      {tn === "Pato" ? "🦆" : "🇮🇹"} <b>Sos del equipo {tn}.</b> Este año {edition?.year} no jugás, pero seguilo desde acá:{" "}
+      {a === b ? `van empatados ${fmtPts(a)} a ${fmtPts(b)}` : a > b ? `gana ${fmtPts(a)} a ${fmtPts(b)}` : `pierde ${fmtPts(a)} a ${fmtPts(b)}`}.
+      {players.length > 0 && <><br /><span className="muted">Juegan: {players.join(", ")}</span></>}
+    </div>
+  );
+}
+
 export function Home() {
   const { loading, error, edition, isCurrent, teams, teamScore, ranking, records, reload } = useAppData();
   const { player } = useAuth();
@@ -123,6 +175,8 @@ export function Home() {
         </div>
       </div>
 
+      <ViewerCard />
+      <HcpCard />
       {isCurrent && <TodayCard />}
 
       <button className="live-cta" onClick={() => nav("live")}>

@@ -189,7 +189,7 @@ function CardEditor({ fixture, target, me, onSaved }: { fixture: FixtureRow; tar
       return;
     }
     if (draft) clearDraft(fx, pl); // el servidor tiene una versión más nueva
-    const baseHcp = card?.handicap ?? target.handicap ?? null;
+    const baseHcp = card?.handicap ?? target.handicap ?? target.players.handicap_index ?? null;
     setGross(card?.gross ?? {});
     setHcp(fmtHcp(baseHcp));
     setTotal(card?.stableford != null ? String(card.stableford) : "");
