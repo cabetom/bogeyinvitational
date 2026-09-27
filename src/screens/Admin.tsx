@@ -213,7 +213,7 @@ function PlayersPanel() {
         <input className="field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Juan Pérez" />
         <label className="form-lbl">Matrícula (usuario y contraseña inicial)</label>
         <input className="field tabular" inputMode="numeric" value={matricula} onChange={(e) => setMatricula(e.target.value.replace(/\D/g, ""))} placeholder="Ej: 102587" />
-        <label className="form-lbl">Email (Gmail, opcional — para entrar con Google)</label>
+        <label className="form-lbl">Email (opcional)</label>
         <input className="field" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jugador@gmail.com" />
         <label className="form-lbl">Equipo</label>
         <select className="field" value={teamId} onChange={(e) => setTeamId(e.target.value)}>
