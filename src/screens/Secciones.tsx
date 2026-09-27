@@ -13,6 +13,7 @@ const SPONSORS: { name: string; logo: string; bg?: string }[] = [
   { name: "Easy Golf", logo: "/sponsors/easygolf.webp" },
   { name: "Inmobiliaria Del Cerro", logo: "/sponsors/inmobiliaria-del-cerro.png" },
   { name: "Relaw", logo: "/sponsors/relaw.png", bg: "#CBF23F" },
+  { name: "El Negro SA", logo: "/sponsors/el-negro.png" },
 ];
 
 function Back() {
