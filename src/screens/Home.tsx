@@ -9,7 +9,8 @@ import type { Fixture } from "../lib/types";
 import { refreshHandicaps } from "../lib/auth";
 import { fmtHcp } from "../lib/scoring";
 import { SponsorsBlock } from "./Secciones";
-import { shortName, Spinner } from "../ui/misc";
+import { displayName, shortName, Spinner } from "../ui/misc";
+import { getRyderStandings, type RyderStandings } from "../lib/queries";
 
 const fmtPts = (n: number) => (Number.isInteger(n) ? `${n}` : n.toFixed(1));
 
@@ -82,6 +83,69 @@ function TodayCard() {
           <button className="btn-primary" onClick={() => nav("cargar")}>Cargar mi tarjeta de hoy</button>
         )
       )}
+    </div>
+  );
+}
+
+/** Cuánto le falta a cada equipo para ganar (o retener, el campeón) la Copa, o si ya no puede. */
+function CupCard() {
+  const { edition, version } = useAppData();
+  const [s, setS] = useState<RyderStandings | null>(null);
+  useEffect(() => {
+    if (!edition) return;
+    getRyderStandings(edition.id).then(setS).catch(() => { /* sin señal: queda lo último */ });
+  }, [edition?.id, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!s || s.totalMatches === 0) return null;
+
+  const remaining = Math.max(0, s.totalMatches - s.played); // partidos sin cerrar (en juego + por jugar)
+  const team = (name: "Pato" | "Tano") => {
+    const pts = name === "Pato" ? s.patoPts : s.tanoPts;
+    const champ = s.champion === name;
+    const goal = champ ? s.toRetain : s.toWin;
+    const verb = champ ? "retener" : "ganar";
+    let msg: string, cls = "";
+    if (pts >= s.toWin) { msg = "🏆 ¡Ganó la Copa!"; cls = "won"; }
+    else if (champ && pts >= s.toRetain) { msg = "🏆 Retuvo la Copa"; cls = "won"; }
+    else if (pts + remaining < goal) { msg = `Ya no puede ${verb}`; cls = "out"; }
+    else { const need = goal - pts; msg = `Le falta${need === 1 ? "" : "n"} ${fmtPts(need)} punto${need === 1 ? "" : "s"} para ${verb}`; }
+    return (
+      <div className={`cc ${name === "Pato" ? "pato" : "tano"} ${cls}`} key={name}>
+        <div className="nm">{name === "Pato" ? "🦆 Pato" : "🇮🇹 Tano"}{champ ? " · campeón" : ""}</div>
+        <div className="big tabular">{fmtPts(pts)}</div>
+        <div className="msg">{msg}</div>
+      </div>
+    );
+  };
+  return (
+    <>
+      <div className="cup-card">{team("Pato")}{team("Tano")}</div>
+      <p className="muted" style={{ fontSize: 11.5, marginTop: 6, textAlign: "center" }}>
+        {s.played} de {s.totalMatches} partidos cerrados · el campeón retiene con {fmtPts(s.toRetain)}, el retador gana con {fmtPts(s.toWin)}
+      </p>
+    </>
+  );
+}
+
+/** Quién viene ganando el stableford (la Chaqueta). */
+function LeaderCard() {
+  const { ranking, edition } = useAppData();
+  const played = ranking.filter((r) => r.rounds > 0);
+  if (played.length === 0) return null;
+  const top = played.filter((r) => r.pos === 1);
+  const second = played.find((r) => r.pos > 1);
+  const drop = edition?.stableford_drop ?? 0;
+  return (
+    <div className="lead-card">
+      <span className="ic">🧥</span>
+      <div style={{ minWidth: 0 }}>
+        <div className="t">{top.length > 1 ? "Empatados en la punta del stableford" : "Lidera el stableford"}</div>
+        <div className="s">
+          {top.map((r) => displayName(r.player.full_name)).join(" y ")}
+          {second ? ` · ${displayName(second.player.full_name)} a ${top[0].points - second.points}` : ""}
+          {drop > 0 ? " · se descarta la peor tarjeta" : ""}
+        </div>
+      </div>
+      <div className="v tabular">{top[0].points}</div>
     </div>
   );
 }
@@ -175,6 +239,8 @@ export function Home() {
         </div>
       </div>
 
+      <CupCard />
+      <LeaderCard />
       <ViewerCard />
       <HcpCard />
       {isCurrent && <TodayCard />}

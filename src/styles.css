@@ -451,3 +451,48 @@ select.field{background-image:linear-gradient(45deg,transparent 50%,var(--ink-so
 .team-pick .tp-emoji{height:48px;display:flex;align-items:center;justify-content:center}
 .day-chips span.drop{text-decoration:line-through;opacity:.55}
 .lead .pts .pts-all{display:block;font-size:10px;font-weight:600;color:var(--ink-faint);margin-left:0}
+/* partidos hoyo a hoyo */
+.mini-btn.primary{background:var(--pine);color:#F2EFE2;border-color:var(--pine)}
+.hole-strip{padding:4px 14px 10px;display:flex;flex-direction:column;gap:4px}
+.hole-strip .hs-row{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.hole-strip .hs{display:flex;flex-direction:column;align-items:center;justify-content:center;height:34px;border-radius:7px;border:1px solid var(--line);background:var(--surface-2);font:inherit;color:var(--ink-faint);cursor:pointer;padding:0;line-height:1.05}
+.hole-strip .hs:disabled{cursor:default}
+.hole-strip .hs .n{font-size:9.5px;font-weight:700}
+.hole-strip .hs .w{font-size:11px;font-weight:800;min-height:12px}
+.hole-strip .hs.pato{background:var(--pato);border-color:var(--pato);color:#fff}
+.hole-strip .hs.tano{background:var(--tano);border-color:var(--tano);color:#fff}
+.hole-strip .hs.h{background:var(--line);color:var(--ink)}
+.hole-strip .hs.sel{outline:2.5px solid var(--gold);outline-offset:1px}
+.hole-status{text-align:center;font-weight:700;font-size:13.5px;padding:8px 10px;border-radius:10px;background:var(--surface-2);margin-bottom:8px}
+.hole-status.done{background:var(--gold-soft);color:var(--ink)}
+.hole-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.hole-nav .mini-btn{font-size:20px;padding:4px 16px;line-height:1}
+.hole-nav .hn-big{font-size:15px}
+.hole-nav .hn-big b{font-family:var(--serif);font-size:26px;margin-left:4px}
+.hole-pick{display:grid;grid-template-columns:1fr .8fr 1fr;gap:8px;margin-bottom:10px}
+.hole-pick .hp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:76px;padding:8px 6px;border-radius:14px;border:2px solid var(--line);background:var(--surface);font:inherit;cursor:pointer;color:var(--ink);text-align:center}
+.hole-pick .hp-btn .t{font-weight:800;font-size:14px;line-height:1.15}
+.hole-pick .hp-btn .s{font-size:10.5px;color:var(--ink-faint);line-height:1.2}
+.hole-pick .hp-btn.pato{border-color:var(--pato)}
+.hole-pick .hp-btn.tano{border-color:var(--tano)}
+.hole-pick .hp-btn.pato.on{background:var(--pato);color:#fff}
+.hole-pick .hp-btn.tano.on{background:var(--tano);color:#fff}
+.hole-pick .hp-btn.h.on{background:var(--pine);color:#fff;border-color:var(--pine)}
+.hole-pick .hp-btn.on .s{color:rgba(255,255,255,.85)}
+.hole-pick .hp-btn:active{transform:scale(.97)}
+.hole-pick .hp-btn:disabled{opacity:.6}
+/* Inicio: la Copa y la Chaqueta */
+.cup-card{margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cup-card .cc{border-radius:var(--r);padding:12px 14px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+.cup-card .cc.pato{border-top:4px solid var(--pato)}
+.cup-card .cc.tano{border-top:4px solid var(--tano)}
+.cup-card .cc .nm{font-weight:800;font-size:13px}
+.cup-card .cc .big{font-family:var(--serif);font-weight:700;font-size:24px;line-height:1.1;margin-top:2px}
+.cup-card .cc .msg{font-size:12px;color:var(--ink-soft);margin-top:2px;line-height:1.3}
+.cup-card .cc.won{background:var(--gold-soft);border-color:var(--gold)}
+.cup-card .cc.out{opacity:.75}
+.lead-card{margin-top:12px;display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 16px;box-shadow:var(--shadow)}
+.lead-card .ic{font-size:30px}
+.lead-card .t{font-weight:800;font-size:13.5px}
+.lead-card .s{font-size:12px;color:var(--ink-soft)}
+.lead-card .v{margin-left:auto;font-family:var(--serif);font-weight:700;font-size:24px;color:var(--pine)}

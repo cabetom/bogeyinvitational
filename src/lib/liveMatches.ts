@@ -14,6 +14,27 @@ export interface LiveMatch {
   /** Equipos del propio partido (el punto va a estos, no a los de la edición que se esté mirando). */
   teamAId: string | null;
   teamBId: string | null;
+  /** Ganador de cada hoyo cargado (hoyo -> "A" Pato | "B" Tano | "H" empate). */
+  holes: Record<number, HoleWinner>;
+}
+
+export type HoleWinner = "A" | "B" | "H";
+
+/** Carga (o borra, con null) el ganador de un hoyo; el servidor recalcula el partido y lo cierra solo si queda definido. */
+export async function setMatchHole(matchId: string, hole: number, winner: HoleWinner | null): Promise<void> {
+  const { error } = await supabase.rpc("set_match_hole", { p_match_id: matchId, p_hole: hole, p_winner: winner });
+  if (error) throw error;
+}
+
+/** Estado del partido a partir de los hoyos (misma regla que set_match_hole en la base). */
+export function holesState(holes: Record<number, HoleWinner>) {
+  const vals = Object.values(holes);
+  const played = vals.length;
+  const up = vals.filter((w) => w === "A").length - vals.filter((w) => w === "B").length;
+  const remaining = 18 - played;
+  const decided = played > 0 && (Math.abs(up) > remaining || played === 18);
+  const winner: HoleWinner | null = decided ? (up > 0 ? "A" : up < 0 ? "B" : "H") : null;
+  return { played, up, remaining, decided, winner, margin: decided ? matchMargin(up, played) : null };
 }
 
 export async function createMatch(
@@ -54,7 +75,7 @@ export async function deleteMatch(id: string): Promise<void> {
 export async function getMatchesForFixture(fixtureId: string): Promise<LiveMatch[]> {
   const { data, error } = await supabase
     .from("matches")
-    .select("id, modality, team_a_id, team_b_id, match_players(side, players(id, full_name)), match_results(status, up, thru, winner_side, margin)")
+    .select("id, modality, team_a_id, team_b_id, match_players(side, players(id, full_name)), match_results(status, up, thru, winner_side, margin), match_holes(hole_no, winner)")
     .eq("fixture_id", fixtureId);
   if (error) throw error;
   return (data ?? []).map((m: any) => {
@@ -73,6 +94,7 @@ export async function getMatchesForFixture(fixtureId: string): Promise<LiveMatch
       modality: m.modality ?? "fourball",
       teamAId: m.team_a_id ?? null,
       teamBId: m.team_b_id ?? null,
+      holes: Object.fromEntries((m.match_holes ?? []).map((h: any) => [h.hole_no, h.winner])),
     } as LiveMatch;
   });
 }
