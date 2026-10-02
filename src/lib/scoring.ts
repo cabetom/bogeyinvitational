@@ -118,3 +118,18 @@ export function fmtHcp(h: number | null | undefined): string {
   if (h == null) return "";
   return h < 0 ? `+${-h}` : String(h);
 }
+
+/**
+ * Descarte del ranking: de las tarjetas jugadas cuentan las mejores (totalFechas - descarte).
+ * Con 4 fechas y 1 descarte: mientras alguien tenga 3 o menos, cuentan todas; con 4, se tira la peor.
+ * Devuelve los puntos que cuentan y qué fechas quedaron descartadas.
+ */
+export function applyDrop(cards: { fixtureId: string; pts: number }[], totalFixtures: number, drop: number): { counted: number; dropped: string[] } {
+  const keep = Math.max(0, totalFixtures - drop);
+  const sorted = [...cards].sort((a, b) => b.pts - a.pts); // si hay empate en la peor, el total da igual
+  if (drop <= 0 || sorted.length <= keep) return { counted: sorted.reduce((s, c) => s + c.pts, 0), dropped: [] };
+  return {
+    counted: sorted.slice(0, keep).reduce((s, c) => s + c.pts, 0),
+    dropped: sorted.slice(keep).map((c) => c.fixtureId),
+  };
+}

@@ -449,3 +449,5 @@ select.field{background-image:linear-gradient(45deg,transparent 50%,var(--ink-so
 .viewer-card.pato{background:var(--pato-soft)}
 .viewer-card.tano{background:var(--tano-soft)}
 .team-pick .tp-emoji{height:48px;display:flex;align-items:center;justify-content:center}
+.day-chips span.drop{text-decoration:line-through;opacity:.55}
+.lead .pts .pts-all{display:block;font-size:10px;font-weight:600;color:var(--ink-faint);margin-left:0}

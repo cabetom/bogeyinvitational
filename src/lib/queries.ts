@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import { matriculaFromEmail } from "./auth";
+import { applyDrop } from "./scoring";
 import type {
   Edition,
   Player,
@@ -53,15 +54,19 @@ export async function getRoster(editionId: string): Promise<RosterRow[]> {
 
 /** Ranking stableford acumulado de la edición (suma de tarjetas). */
 export async function getRanking(editionId: string): Promise<RankRow[]> {
-  const [roster, teams, cards] = await Promise.all([
+  const [roster, teams, cards, fx, ed] = await Promise.all([
     getRoster(editionId),
     getTeams(editionId),
     supabase
       .from("scorecards")
       .select("stableford, player_id, fixture_id, fixtures!inner(edition_id)")
       .eq("fixtures.edition_id", editionId),
+    supabase.from("fixtures").select("id", { count: "exact", head: true }).eq("edition_id", editionId),
+    supabase.from("editions").select("stableford_drop").eq("id", editionId).maybeSingle(),
   ]);
   if (cards.error) throw cards.error;
+  const totalFixtures = fx.count ?? 0;
+  const drop = (ed.data as { stableford_drop?: number } | null)?.stableford_drop ?? 0;
 
   const teamById = new Map(teams.map((t) => [t.id, t]));
   const agg = new Map<string, { points: number; rounds: number; byFixture: Record<string, number | null> }>();
@@ -75,10 +80,14 @@ export async function getRanking(editionId: string): Promise<RankRow[]> {
 
   const rows: RankRow[] = roster.map((r) => {
     const a = agg.get(r.player_id) ?? { points: 0, rounds: 0, byFixture: {} };
+    const played = Object.entries(a.byFixture).filter(([, v]) => v != null).map(([fixtureId, v]) => ({ fixtureId, pts: v as number }));
+    const { counted, dropped } = applyDrop(played, totalFixtures, drop);
     return {
       player: r.players,
       team: r.team_id ? teamById.get(r.team_id) ?? null : null,
-      points: a.points,
+      points: counted,
+      total: a.points,
+      dropped,
       rounds: a.rounds,
       byFixture: a.byFixture,
       pos: 0,

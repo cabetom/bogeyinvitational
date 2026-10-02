@@ -30,6 +30,7 @@ export function Ranking() {
 
   const rows = ranking.filter((r) => filter === "all" || r.team?.name === filter);
   const anyCard = ranking.some((r) => r.rounds > 0);
+  const drop = edition?.stableford_drop ?? 0;
   // La Chaqueta: solo si hay un líder solo (sin empate) y ya hay puntos.
   const leaderId = anyCard && ranking[0] && ranking[0].points > 0 && ranking[1]?.points !== ranking[0].points ? ranking[0].player.id : null;
 
@@ -61,13 +62,14 @@ export function Ranking() {
                       <span className="day-chips">
                         {fixtures.map((f) => {
                           const v = r.byFixture[f.id];
-                          return <span key={f.id} className={v == null ? "miss" : ""}>D{f.day_no} {v ?? "—"}</span>;
+                          const drop = r.dropped.includes(f.id);
+                          return <span key={f.id} className={v == null ? "miss" : drop ? "drop" : ""} title={drop ? "Descartada (la peor)" : undefined}>D{f.day_no} {v ?? "—"}</span>;
                         })}
                       </span>
                     )}
                   </span>
                 </span>
-                <span className="pts">{r.points}<small>pts</small></span>
+                <span className="pts">{r.points}<small>pts</small>{r.dropped.length > 0 && <small className="pts-all">de {r.total}</small>}</span>
               </li>
             );
           })}
@@ -75,7 +77,9 @@ export function Ranking() {
         </ul>
       </div>
       <p className="muted" style={{ textAlign: "center", marginTop: 12 }}>
-        {anyCard ? "Acumulado de todas las fechas · el mejor stableford se lleva la Chaqueta 🧥" : "Todavía no hay tarjetas cargadas."}
+        {!anyCard ? "Todavía no hay tarjetas cargadas." : drop > 0
+          ? `Cuentan las mejores ${Math.max(0, fixtures.length - drop)} de ${fixtures.length} fechas: se descarta la peor tarjeta de cada uno (tachada). El mejor stableford se lleva la Chaqueta 🧥`
+          : "Acumulado de todas las fechas · el mejor stableford se lleva la Chaqueta 🧥"}
       </p>
     </>
   );

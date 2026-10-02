@@ -8,7 +8,7 @@ import { addPlayerToEdition, removeFromEdition, setEditionHandicap, setPlayerAdm
 import { adminSetPlayerLogin, refreshHandicaps } from "../lib/auth";
 import {
   addFixture, deleteFixture, fixtureDependents, getCourseHoles, saveCourseHoles, addCourse, setEditionTotalPoints,
-  updateFixture, validateHoles, type HoleRow,
+  updateFixture, validateHoles, setEditionDrop, type HoleRow,
 } from "../lib/adminSetup";
 import { getAwards, addAward, deleteAward, AWARD_CATS, awardIcon, type AwardRow } from "../lib/awards";
 import { createMatch, deleteMatch, getMatchesForFixture, type LiveMatch } from "../lib/liveMatches";
@@ -328,6 +328,20 @@ function FixturesPanel() {
         <input className="field tabular" inputMode="numeric" value={totalPts} onChange={(e) => setTotalPts(e.target.value.replace(/\D/g, ""))} placeholder="Ej: 10" />
         <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>Un punto por partido: 3 días de fourball × 2 partidos + 4 individuales = 10.</p>
         <button className="btn-primary" onClick={saveTotal}>Guardar puntos en juego</button>
+      </div>
+
+      <div className="card pad" style={{ marginTop: 12 }}>
+        <label className="form-lbl" style={{ marginTop: 0 }}>Descarte en el ranking stableford</label>
+        <select className="field" value={edition?.stableford_drop ?? 0} onChange={async (e) => {
+          if (!edition) return;
+          try { await setEditionDrop(edition.id, Number(e.target.value)); setMsg(`✓ Descarte: ${e.target.value === "0" ? "ninguno" : `la${e.target.value === "1" ? "" : "s"} ${e.target.value} peor${e.target.value === "1" ? "" : "es"}`}`); reload(); }
+          catch (err) { setMsg(errText(err, "No se pudo guardar")); }
+        }}>
+          <option value={0}>Sin descarte (suman todas)</option>
+          <option value={1}>Se descarta la peor tarjeta</option>
+          <option value={2}>Se descartan las 2 peores</option>
+        </select>
+        <p className="muted" style={{ fontSize: 11.5, marginTop: 4 }}>Cuentan las mejores {Math.max(0, fixtures.length - (edition?.stableford_drop ?? 0))} de {fixtures.length} fechas. Hasta que alguien no juega todas, no se le descarta nada.</p>
       </div>
 
       <div className="sec-title"><h2>Agregar fecha</h2></div>

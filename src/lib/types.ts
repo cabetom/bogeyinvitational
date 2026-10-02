@@ -10,6 +10,8 @@ export interface Edition {
   end_date: string | null;
   is_current: boolean;
   total_points: number | null;
+  /** Tarjetas que se descartan en el ranking stableford (la(s) de menor puntaje). */
+  stableford_drop?: number;
 }
 
 export interface Player {
@@ -91,6 +93,10 @@ export interface RankRow {
   pos: number;
   /** Hándicap del torneo (edition_players.handicap). */
   handicap?: number | null;
+  /** Suma de todas las tarjetas, sin descartar. */
+  total: number;
+  /** Fechas descartadas (no suman en points). */
+  dropped: string[];
 }
 
 /** Récord de matches de un jugador (para MVP e historial). */

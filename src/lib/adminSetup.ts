@@ -84,6 +84,12 @@ export async function deleteFixture(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Cuántas tarjetas (las de menor puntaje) se descartan en el ranking stableford. */
+export async function setEditionDrop(editionId: string, drop: number): Promise<void> {
+  const { error } = await supabase.from("editions").update({ stableford_drop: drop }).eq("id", editionId);
+  if (error) throw error;
+}
+
 /** Define los puntos totales en juego (Ryder) de una edición. */
 export async function setEditionTotalPoints(editionId: string, total: number | null): Promise<void> {
   const { error } = await supabase.from("editions").update({ total_points: total }).eq("id", editionId);
